@@ -17,15 +17,20 @@ SCRYFALL_URL = "https://api.scryfall.com/cards/search"
 def read_root():
     return {"message": "Welcome to the MTG Deckbuilder API! Use /search to search for cards."}
 
+
 @app.get("/search")
-def search_cards(query: str):
+def search_cards(query: str, page: int = Query(1, ge=1)):
     try:
-        response = requests.get(SCRYFALL_URL, params={"q": query})
+        response = requests.get(SCRYFALL_URL, params={"q": query, "page": page})
         response.raise_for_status()
         data = response.json()
 
         if "data" in data:
-            return data["data"]
+            return {
+                "cards": data["data"],
+                "has_more": data.get("has_more", False),
+                "next_page": page + 1 if data.get("has_more", False) else None
+            }
         else:
             return {"error": "Unexpected response structure from Scryfall."}
 
