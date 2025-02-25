@@ -1,8 +1,3 @@
-You're right - the issue might be with how the images themselves are being rendered within the card container. Let's look at a solution that forces the images to scale up properly.
-
-Based on the HTML you shared from the inspect element, we need to modify the CSS for the actual card face images. The container might be larger now, but the images inside it could still be constrained.
-
-```html
 <template>
   <div class="popup-overlay" @click.self="close">
     <div class="popup-content">
@@ -22,13 +17,13 @@ Based on the HTML you shared from the inspect element, we need to modify the CSS
           
           <div class="info-grid">
             <div class="info-row">
-              <span class="info-label">Mana Value:</span>
-              <span class="info-value">{{ card.cmc || "N/A" }}</span>
+              <span class="info-label">Mana Cost:</span>
+              <span class="info-value mana-symbols" v-html="formatManaCost(card.mana_cost)"></span>
             </div>
             
             <div class="info-row">
-              <span class="info-label">Mana Color:</span>
-              <span class="info-value">{{ card.colors?.join(", ") || "Colorless" }}</span>
+              <span class="info-label">Color Identity:</span>
+              <span class="info-value">{{ formatColorIdentity(card.colors) }}</span>
             </div>
             
             <div class="info-row" v-if="card.power || card.toughness">
@@ -49,7 +44,7 @@ Based on the HTML you shared from the inspect element, we need to modify the CSS
           
           <div class="oracle-text">
             <h3>Oracle Text</h3>
-            <p>{{ card.oracle_text || "N/A" }}</p>
+            <p v-html="formatManaCost(card.oracle_text || 'N/A')"></p>
           </div>
         </div>
       </div>
@@ -66,6 +61,12 @@ export default {
   components: {
     CardFlip,
   },
+  mounted() {
+    // Debug: Check what's in the mana_cost field
+    console.log("Mana Cost:", this.card.mana_cost);
+    console.log("Oracle Text:", this.card.oracle_text);
+    console.log("Colors:", this.card.colors);
+  },
   computed: {
     canBeFlipped() {
       // Card can be flipped if it has card_faces with a second face that has an image
@@ -76,9 +77,116 @@ export default {
     close() {
       this.$emit("close");
     },
-  },
+    formatManaCost(text) {
+      if (!text) return "N/A";
+      
+      // Convert mana symbols to lowercase for proper class naming
+      return text.replace(/\{([^}]+)\}/g, (match, symbol) => {
+        // Handle special cases
+        let cssClass = symbol.toLowerCase();
+        
+        // Handle tap symbol
+        if (cssClass === 't' || cssClass === 'tap') {
+          cssClass = 'tap';
+        }
+        
+        // Handle untap symbol
+        if (cssClass === 'q' || cssClass === 'untap') {
+          cssClass = 'untap';
+        }
+        
+        return `<i class="ms ms-${cssClass}">${cssClass}</i>`;
+      });
+    },
+    formatColorIdentity(colors) {
+      if (!colors || colors.length === 0) return "Colorless";
+      
+      const colorMap = {
+        'W': 'White',
+        'U': 'Blue',
+        'B': 'Black',
+        'R': 'Red',
+        'G': 'Green'
+      };
+      
+      return colors.map(color => colorMap[color] || color).join(", ");
+    }
+  }
 };
 </script>
+
+<style>
+/* Move these outside the scoped style to ensure they apply to dynamically created elements */
+.ms {
+  display: inline-block;
+  width: 1.3em;
+  height: 1.3em;
+  font-size: 1em;
+  border-radius: 50%;
+  margin: 0 2px;
+  text-align: center;
+  line-height: 1.3em;
+  color: white;
+  font-weight: bold;
+  box-shadow: -0.05em 0.12em 0 0 rgba(0, 0, 0, 0.3);
+}
+
+/* White mana */
+.ms-w {
+  background-color: #F8F6D8;
+  color: #111;
+}
+
+/* Blue mana */
+.ms-u {
+  background-color: #C1D7E9;
+  color: #111;
+}
+
+/* Black mana */
+.ms-b {
+  background-color: #BAB1AB;
+  color: black;
+}
+
+/* Red mana */
+.ms-r {
+  background-color: #E49977;
+  color: black;
+}
+
+/* Green mana */
+.ms-g {
+  background-color: #A3C095;
+  color: #111;
+}
+
+/* Generic/colorless mana */
+.ms-0, .ms-1, .ms-2, .ms-3, .ms-4, .ms-5, 
+.ms-6, .ms-7, .ms-8, .ms-9, .ms-10, .ms-x {
+  background-color: #ccc;
+  color: #111;
+}
+
+/* Special symbols */
+.ms-tap, .ms-untap {
+  background-color: #ccc;
+  color: #111;
+}
+
+/* Specific font size adjustments for the mana symbols */
+.mana-symbols .ms {
+  font-size: 18px;
+  margin-right: 2px;
+}
+
+/* Oracle text mana symbols alignment */
+.oracle-text p .ms {
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+}
+</style>
 
 <style scoped>
 .popup-overlay {
@@ -93,6 +201,7 @@ export default {
   align-items: center;
   z-index: 1000;
 }
+
 .popup-content {
   background: white;
   border-radius: 12px;
@@ -205,6 +314,12 @@ export default {
   color: #222;
 }
 
+.mana-symbols {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
 .oracle-text {
   margin-top: 10px;
   background-color: #f8f8f8;
@@ -270,4 +385,3 @@ export default {
   }
 }
 </style>
-

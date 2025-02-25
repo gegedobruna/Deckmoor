@@ -1,5 +1,5 @@
 <template>
-  <div class="autocomplete-dropdown" v-if="results.length" @click.stop>
+  <div class="autocomplete-dropdown" v-if="results?.length > 0" @click.stop>
     <ul>
       <li v-for="card in results" :key="card.id" @click="$emit('select-card', card)">
         {{ card.name }}
