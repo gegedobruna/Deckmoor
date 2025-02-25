@@ -13,7 +13,7 @@
 
       <!-- Autocomplete component -->
       <CardAutocomplete 
-        v-if="results.length" 
+        v-if="results?.length > 0"
         :results="results" 
         @select-card="showCardDetails" 
       />
@@ -70,32 +70,34 @@ export default {
       }
     }, 300),
     async fetchAutocomplete(query) {
-      try {
-        const response = await axios.get(`http://127.0.0.1:8000/search?query=${query}&page=1`);
-        this.results = response.data.cards.slice(0, 10);
-      } catch (error) {
-        console.error("Error fetching autocomplete results:", error);
-        this.results = [];
-      }
-    },
+  try {
+    const response = await axios.get(`http://127.0.0.1:8000/search?query=${query}&page=1`);
+    this.results = response.data.cards?.slice(0, 10) || [];
+  } catch (error) {
+    console.error("Error fetching autocomplete results:", error);
+    this.results = [];
+  }
+},
     async submitSearch() {
       if (!this.query.trim()) return;
       this.page = 1;
       this.fetchCards(1);
     },
     async fetchCards(newPage = 1) {
-      if (!this.query.trim()) return;
-      try {
-        const response = await axios.get("http://127.0.0.1:8000/search", {
-          params: { query: this.query, page: newPage },
-        });
-        this.cards = response.data.cards;
-        this.hasMore = response.data.has_more;
-        this.page = newPage;
-      } catch (error) {
-        console.error("Error fetching cards:", error);
-      }
-    },
+  if (!this.query.trim()) return;
+  try {
+    const response = await axios.get("http://127.0.0.1:8000/search", {
+      params: { query: this.query, page: newPage },
+    });
+    this.cards = response.data.cards || [];
+    this.hasMore = response.data.has_more || false;
+    this.page = newPage;
+  } catch (error) {
+    console.error("Error fetching cards:", error);
+    this.cards = [];
+    this.hasMore = false;
+  }
+},
     showCardDetails(card) {
       this.selectedCard = card;
       this.results = [];
