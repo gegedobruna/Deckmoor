@@ -1,0 +1,103 @@
+:root {
+    --primary-color: #4a6baf;
+    --primary-hover: #3a5a9f;
+    --secondary-color: #718096;
+    --background-color: #f7fafc;
+    --border-color: #e2e8f0;
+    --text-color: #2d3748;
+    --error-color: #e53e3e;
+    --success-color: #38a169;
+    --accent-color: #805ad5;  /* New accent color for the back button */
+    --accent-hover: #6b46c1;  /* Hover state for accent color */
+    --spacing-unit: 12px;
+    --card-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    --sidebar-shadow: -2px 0 15px rgba(0, 0, 0, 0.1);
+    --transition-speed: 0.2s;
+    --border-radius: 6px;
+  }
+  
+  body {
+    font-family: 'Inter', sans-serif;
+    color: var(--text-color);
+    margin: 0;
+    padding: 0;
+    background-color: var(--background-color);
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    margin: 0;
+  }
+  
+  h1 {
+    font-size: 2rem;
+  }
+  
+  h2 {
+    font-size: 1.75rem;
+  }
+  
+  h3 {
+    font-size: 1.5rem;
+  }
+  
+  h4 {
+    font-size: 1.25rem;
+  }
+  
+  p {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+  
+  button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    background-color: var(--primary-color);
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  button:hover {
+    background-color: var(--hover-color);
+  }
+  
+  button:disabled {
+    background-color: var(--secondary-color);
+    cursor: not-allowed;
+  }
+  
+  button.secondary {
+    background-color: var(--secondary-color);
+  }
+  
+  button.secondary:hover {
+    background-color: #5a6268;
+  }
+  
+  button.accent {
+    background-color: var(--accent-color);
+  }
+  
+  button.accent:hover {
+    background-color: #ff5252;
+  }
+  
+  /* Utility Classes */
+  .mb-1 {
+    margin-bottom: var(--spacing-unit);
+  }
+  
+  .mb-2 {
+    margin-bottom: calc(var(--spacing-unit) * 2);
+  }
+  
+  .p-1 {
+    padding: var(--spacing-unit);
+  }
+  
+  .p-2 {
+    padding: calc(var(--spacing-unit) * 2);
+  }

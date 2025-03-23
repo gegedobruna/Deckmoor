@@ -37,9 +37,10 @@
       <div class="results-area">
         <!-- Card Grid -->
         <CardGrid 
-          v-if="cards.length" 
+          v-if="cards && cards.length > 0" 
           :cards="cards" 
-          @select-card="showCardDetails" 
+          @select-card="showCardDetails"
+          @add-to-deck="addCardToDeck" 
         />
         <div v-else-if="hasSearched" class="no-results">
           No cards found matching your criteria
@@ -52,13 +53,22 @@
           <button @click="fetchCards(page + 1)" :disabled="!hasMore">Next</button>
         </div>
       </div>
+
+      <!-- Deck Sidebar - Added for deck management -->
+      <DeckSidebar 
+        :selectedCard="selectedCard"
+        @reset-selected-card="selectedCard = null"
+        @view-card="viewCardDetails"
+        @deck-saved="onDeckSaved"
+      />
     </div>
 
     <!-- Card Details Pop-Up -->
     <CardDetailsPopup 
       v-if="selectedCard" 
       :card="selectedCard" 
-      @close="selectedCard = null" 
+      @close="closeCardDetails" 
+      @add-to-deck="addCardToDeck"
     />
   </div>
 </template>
@@ -70,13 +80,15 @@ import CardAutocomplete from "./CardAutocomplete.vue";
 import CardGrid from "./CardGrid.vue";
 import CardDetailsPopup from "./CardDetailsPopup.vue";
 import FilterPanel from "./FilterPanel.vue";
+import DeckSidebar from "./DeckSidebar.vue";
 
 export default {
   components: { 
     CardAutocomplete, 
     CardGrid, 
     CardDetailsPopup,
-    FilterPanel
+    FilterPanel,
+    DeckSidebar
   },
   data() {
     return {
@@ -84,6 +96,7 @@ export default {
       results: [],
       cards: [],   
       selectedCard: null,
+      selectedCardForDeck: null, // Property to track card selected for adding to deck
       page: 1,
       hasMore: false,
       showFilters: false,
@@ -96,6 +109,14 @@ export default {
     this.fetchSets();
   },
   methods: {
+    // Add this method to handle adding cards to the deck
+    // In CardSearch.vue, update the addCardToDeck method
+addCardToDeck(card) {
+  this.selectedCardForDeck = card;
+  // We also need to set the selectedCard so the DeckSidebar's watcher can respond
+  this.selectedCard = card;
+},
+    
     debouncedSearch: debounce(function () {
       if (this.query.trim()) {
         this.fetchAutocomplete(this.query);
@@ -183,6 +204,14 @@ export default {
     showCardDetails(card) {
       this.selectedCard = card;
       this.results = [];
+    },
+
+    closeCardDetails() {
+      // When closing card details, set the card for the deck
+      if (this.selectedCard) {
+        this.selectedCardForDeck = this.selectedCard;
+      }
+      this.selectedCard = null;
     },
     
     applyFilters(filters) {

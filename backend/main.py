@@ -60,6 +60,7 @@ async def search_cards(
     Search for Magic: The Gathering cards with various filters.
 
     The filters are converted to Scryfall syntax and included in the query.
+    Returns only 15 cards per page for pagination.
     """
     try:
         # Parse filter parameters
@@ -123,20 +124,52 @@ async def search_cards(
             scryfall_query = "type:creature"  # Default search if no query/filters
 
         # Make the API request to Scryfall
+        # Note: Scryfall doesn't support page_size parameter, so we'll handle pagination manually
+        cards_per_page = 15
+
+        # Calculate which page of Scryfall results we need
+        # Scryfall has a default of 175 cards per page
+        scryfall_page = ((page - 1) * cards_per_page) // 175 + 1
+
         response = requests.get(
             SCRYFALL_URL,
-            params={"q": scryfall_query, "page": page}
+            params={"q": scryfall_query, "page": scryfall_page}
         )
         response.raise_for_status()
         data = response.json()
 
         if "data" in data:
+            all_cards = data["data"]
+            total_cards = data.get("total_cards", 0)
+
+            # Calculate the offset within the Scryfall page
+            offset = ((page - 1) * cards_per_page) % 175
+
+            # Get the slice of 15 cards for this page
+            paginated_cards = all_cards[offset:offset + cards_per_page]
+
+            # Check if we need to fetch the next page from Scryfall
+            if not paginated_cards and data.get("has_more", False):
+                # We need the next Scryfall page
+                next_response = requests.get(
+                    SCRYFALL_URL,
+                    params={"q": scryfall_query, "page": scryfall_page + 1}
+                )
+                next_response.raise_for_status()
+                next_data = next_response.json()
+
+                if "data" in next_data:
+                    paginated_cards = next_data["data"][:cards_per_page]
+
+            # Determine if there are more pages
+            has_more = (page * cards_per_page) < total_cards
+
             return {
-                "cards": data["data"],
-                "has_more": data.get("has_more", False),
-                "next_page": page + 1 if data.get("has_more", False) else None,
-                "total_cards": data.get("total_cards", 0),
-                "applied_query": scryfall_query  # Return the query that was sent to Scryfall
+                "cards": paginated_cards,
+                "has_more": has_more,
+                "next_page": page + 1 if has_more else None,
+                "total_cards": total_cards,
+                "applied_query": scryfall_query
             }
         else:
             return {"error": "Unexpected response structure from Scryfall."}

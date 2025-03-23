@@ -51,17 +51,20 @@ export default {
   flex-wrap: wrap;
   gap: 20px;
   margin-top: 20px;
-  background: #f9f9f9;
+  background: var(--background-color);
   padding: 20px;
   border-radius: 10px;
 }
+
 .card-face {
   margin-bottom: 20px;
   width: 100%;
 }
+
 .card-info {
   font-size: 16px;
 }
+
 .card-image img {
   max-width: 300px;
   border-radius: 5px;

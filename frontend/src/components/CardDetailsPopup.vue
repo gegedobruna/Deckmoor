@@ -9,6 +9,11 @@
             <CardFlip :card="card" />
             <div v-if="canBeFlipped" class="flip-hint">Click to flip</div>
           </div>
+          
+          <!-- Add to Deck Button -->
+          <button class="add-to-deck-btn" @click="addToDeckAndClose">
+            Add to Deck
+          </button>
         </div>
         
         <!-- Right Column: Card Details -->
@@ -75,6 +80,10 @@ export default {
   },
   methods: {
     close() {
+      this.$emit("close");
+    },
+    addToDeckAndClose() {
+      // Simply close the popup with a flag that this card should be added to the deck
       this.$emit("close");
     },
     formatManaCost(text) {
@@ -209,7 +218,7 @@ export default {
   max-width: 90%;
   height: 570px;
   max-height: 90%;
-  padding: 30px 30px 20px 30px; /* Reduced bottom padding from 30px to 20px */
+  padding: 30px;
   position: relative;
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
 }
@@ -219,59 +228,41 @@ export default {
   gap: 30px;
   overflow-y: auto;
   height: 100%;
-  max-height: calc(100% - 50px); /* Adjusted from 60px to 50px to account for reduced padding */
-  margin-bottom: 5px; /* Add a small margin to create a bit more space at the bottom */
+  max-height: calc(100% - 50px);
+  margin-bottom: 5px;
 }
 
 .card-image-container {
   flex: 0 0 auto;
   display: flex;
-  justify-content: center;
-  width: 350px; /* Set a fixed width for the container */
-  min-width: 350px; /* Ensure the container doesn't shrink */
+  flex-direction: column;
+  align-items: center;
+  width: 350px;
+  min-width: 350px;
 }
 
 .card-image {
-  width: 100%; /* Take full width of container */
+  width: 100%;
   perspective: 1000px;
   position: relative;
+  margin-bottom: 15px;
 }
 
-/* Target the card face images directly */
-:deep(.card-flip-container) {
-  width: 100%;
-  height: auto;
+.add-to-deck-btn {
+  padding: 10px 15px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  width: 80%;
+  text-align: center;
 }
 
-:deep(.card-flip) {
-  width: 100%;
-  height: auto;
-}
-
-:deep(.card-face) {
-  width: 100%;
-  height: auto;
-}
-
-:deep(.card-face img) {
-  width: 100%;
-  height: auto;
-  object-fit: contain;
-  display: block;
-}
-
-.flip-hint {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  text-align: bottom;
-  font-size: 14px;
-  color: #fff;
-  background-color: rgba(0, 0, 0, 0.7);
-  padding: 5px 0;
-  border-radius: 0 0 5px 5px;
-  font-weight: 500;
+.add-to-deck-btn:hover {
+  background-color: var(--hover-color);
 }
 
 .card-info {
@@ -280,16 +271,16 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  min-width: 0; /* Prevent text overflow issues */
+  min-width: 0;
 }
 
 .card-title {
   font-size: 24px;
   font-weight: 600;
-  color: #222;
+  color: var(--text-color);
   margin: 0 0 10px 0;
   padding-bottom: 10px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .info-grid {
@@ -298,41 +289,19 @@ export default {
   gap: 10px;
 }
 
-.info-row {
-  display: flex;
-  align-items: baseline;
-}
-
-.info-label {
-  flex: 0 0 150px;
-  font-weight: 600;
-  color: #444;
-}
-
-.info-value {
-  flex: 1;
-  color: #222;
-}
-
-.mana-symbols {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
-
 .oracle-text {
   margin-top: 10px;
-  background-color: #f8f8f8;
+  background-color: var(--background-color);
   padding: 15px;
   border-radius: 8px;
-  border-left: 4px solid #3182ce;
+  border-left: 4px solid var(--primary-color);
 }
 
 .oracle-text h3 {
   font-size: 16px;
   font-weight: 600;
   margin: 0 0 10px 0;
-  color: #3182ce;
+  color: var(--primary-color);
 }
 
 .oracle-text p {
@@ -345,7 +314,7 @@ export default {
   position: absolute;
   top: 15px;
   right: 15px;
-  background: #f1f1f1;
+  background: var(--background-color);
   border: none;
   width: 30px;
   height: 30px;
@@ -359,29 +328,6 @@ export default {
 }
 
 .close-button:hover {
-  background-color: #e0e0e0;
-}
-
-/* Media queries for responsiveness */
-@media (max-width: 768px) {
-  .popup-body {
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .card-image-container {
-    width: 280px;
-    min-width: 280px;
-    margin-bottom: 20px;
-  }
-  
-  .info-row {
-    flex-direction: column;
-    gap: 5px;
-  }
-  
-  .info-label {
-    flex: none;
-  }
+  background-color: var(--border-color);
 }
 </style>
