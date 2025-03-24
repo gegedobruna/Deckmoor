@@ -32,7 +32,7 @@ export default {
 .autocomplete-dropdown {
   max-height: 300px;
   overflow-y: auto;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 5px;
   margin-top: 10px;
   position: absolute;
@@ -40,16 +40,19 @@ export default {
   width: 100%;
   z-index: 1000;
 }
+
 .autocomplete-dropdown ul {
   list-style: none;
   margin: 0;
   padding: 0;
 }
+
 .autocomplete-dropdown li {
   padding: 10px;
   cursor: pointer;
 }
+
 .autocomplete-dropdown li:hover {
-  background-color: #f0f0f0;
+  background-color: var(--background-color);
 }
 </style>

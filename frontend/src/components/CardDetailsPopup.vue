@@ -82,9 +82,10 @@ export default {
     close() {
       this.$emit("close");
     },
-    addToDeckAndClose() {
-      // Simply close the popup with a flag that this card should be added to the deck
-      this.$emit("close");
+      addToDeckAndClose() {
+      console.log("Emitting add-to-deck for:", this.card.name); // Debug
+      this.$emit('add-to-deck', this.card);
+      this.close();
     },
     formatManaCost(text) {
       if (!text) return "N/A";

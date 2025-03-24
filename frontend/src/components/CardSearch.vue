@@ -37,11 +37,11 @@
       <div class="results-area">
         <!-- Card Grid -->
         <CardGrid 
-          v-if="cards && cards.length > 0" 
-          :cards="cards" 
-          @select-card="showCardDetails"
-          @add-to-deck="addCardToDeck" 
-        />
+  v-if="cards && cards.length > 0" 
+  :cards="cards" 
+  @select-card="showCardDetails"
+  @add-to-deck="addCardToDeck" 
+/>
         <div v-else-if="hasSearched" class="no-results">
           No cards found matching your criteria
         </div>
@@ -54,22 +54,23 @@
         </div>
       </div>
 
-      <!-- Deck Sidebar - Added for deck management -->
+      <!-- Deck Sidebar - for deck management -->
       <DeckSidebar 
+        ref="deckSidebar"
         :selectedCard="selectedCard"
         @reset-selected-card="selectedCard = null"
-        @view-card="viewCardDetails"
+        @view-card="showCardDetails"
         @deck-saved="onDeckSaved"
       />
     </div>
 
     <!-- Card Details Pop-Up -->
-    <CardDetailsPopup 
-      v-if="selectedCard" 
-      :card="selectedCard" 
-      @close="closeCardDetails" 
-      @add-to-deck="addCardToDeck"
-    />
+    <CardDetailsPopup
+    v-if="selectedCard"
+    :card="selectedCard"
+    @close="selectedCard = null"
+    @add-to-deck="addCardToDeck"
+  />
   </div>
 </template>
 
@@ -96,7 +97,7 @@ export default {
       results: [],
       cards: [],   
       selectedCard: null,
-      selectedCardForDeck: null, // Property to track card selected for adding to deck
+      selectedCardForDeck: null, // track card selected for adding to deck
       page: 1,
       hasMore: false,
       showFilters: false,
@@ -109,14 +110,7 @@ export default {
     this.fetchSets();
   },
   methods: {
-    // Add this method to handle adding cards to the deck
-    // In CardSearch.vue, update the addCardToDeck method
-addCardToDeck(card) {
-  this.selectedCardForDeck = card;
-  // We also need to set the selectedCard so the DeckSidebar's watcher can respond
-  this.selectedCard = card;
-},
-    
+
     debouncedSearch: debounce(function () {
       if (this.query.trim()) {
         this.fetchAutocomplete(this.query);
@@ -143,53 +137,44 @@ addCardToDeck(card) {
     
     async fetchCards(newPage = 1) {
       try {
-        // Build the query parameters
         const params = { 
           page: newPage,
           query: this.query.trim()
         };
-        
-        // Add filters if they exist
+        // Apply filters
         if (this.activeFilters) {
-          // Add mana cost filter
+          // Mana cost
           if (this.activeFilters.manaCost.min > 0 || this.activeFilters.manaCost.max < 16) {
             params.mana_min = this.activeFilters.manaCost.min;
             params.mana_max = this.activeFilters.manaCost.max;
           }
-          
-          // Add colors filter
+          // Colors
           if (this.activeFilters.colors.length > 0) {
             params.colors = this.activeFilters.colors.join(',');
           }
-          
-          // Add types filter
+          // Types
           if (this.activeFilters.types.length > 0) {
             params.types = this.activeFilters.types.join(',');
           }
-          
-          // Add rarities filter
+          // Rarities
           if (this.activeFilters.rarities.length > 0) {
             params.rarities = this.activeFilters.rarities.join(',');
           }
-          
-          // Add sets filter
+          // Sets
           if (this.activeFilters.sets.length > 0) {
             params.sets = this.activeFilters.sets.join(',');
           }
-          
-          // Add power filter
+          // Power
           if (this.activeFilters.power.value !== 0) {
             params.power_value = this.activeFilters.power.value;
             params.power_operator = this.activeFilters.power.operator;
           }
-          
-          // Add toughness filter
+          // Toughness
           if (this.activeFilters.toughness.value !== 0) {
             params.toughness_value = this.activeFilters.toughness.value;
             params.toughness_operator = this.activeFilters.toughness.operator;
           }
         }
-        
         const response = await axios.get("http://127.0.0.1:8000/search", { params });
         this.cards = response.data.cards || [];
         this.hasMore = response.data.has_more || false;
@@ -202,15 +187,12 @@ addCardToDeck(card) {
     },
     
     showCardDetails(card) {
-      this.selectedCard = card;
-      this.results = [];
-    },
+  this.selectedCard = card; // Just show details, don't add to deck
+  this.results = [];
+},
 
     closeCardDetails() {
-      // When closing card details, set the card for the deck
-      if (this.selectedCard) {
-        this.selectedCardForDeck = this.selectedCard;
-      }
+      // IMPORTANT: Removed the line that assigned selectedCardForDeck to selectedCard
       this.selectedCard = null;
     },
     
@@ -228,7 +210,16 @@ addCardToDeck(card) {
         console.error("Error fetching sets:", error);
         this.allSets = [];
       }
-    }
+    },
+  addCardToDeck(card) {
+  console.log("Adding card to deck:", card.name); // Debug
+  if (this.$refs.deckSidebar?.addCardToDeck) {
+    this.$refs.deckSidebar.addCardToDeck(card);
+  } else {
+    console.error("DeckSidebar not available");
+  }
+},
+
   },
 };
 </script>

@@ -1,26 +1,43 @@
 <template>
   <div class="card-grid">
     <div v-for="card in cards" :key="card.id" class="card-container">
-      <div class="card-item" @click="$emit('select-card', card)">
+      <div class="card-item">
+        <!-- Clicking image only triggers showing details -->
         <img 
           :src="getCardImageUrl(card)" 
           :alt="card.name" 
           class="card-image"
+          @click="handleImageClick(card)"
         >
         <div class="card-title">{{ card.name }}</div>
-        
-        <!-- Add To Deck Button -->
+
+        <!-- Separate button to add card to the deck -->
         <button 
           class="add-to-deck-btn"
-          @click.stop="$emit('add-to-deck', card)"
+          @click.stop="handleAddToDeck(card)"
           title="Add to deck"
         >
           <span class="plus-icon">+</span>
         </button>
       </div>
     </div>
+
+    <!-- OUTSIDE the loop -->
+    <CardResult
+      v-for="card in cards"
+      :key="card.id"
+      :card="card"
+      @add-to-deck="addCardToDeck"
+    />
+
+    <CardDetailsPopup
+      v-if="selectedCard"
+      :card="selectedCard"
+      @add-to-deck="addCardToDeck"
+    />
   </div>
 </template>
+
 
 <script>
 export default {
@@ -32,23 +49,27 @@ export default {
   },
   methods: {
     getCardImageUrl(card) {
-      // First check if it's a double-faced card
+      // Double-faced card
       if (card.card_faces && card.card_faces.length > 0 && card.card_faces[0].image_uris) {
-        // Return the front face image
         return card.card_faces[0].image_uris.normal;
-      } 
-      // Then check for regular image_uris
+      }
+      // Regular image_uris
       else if (card.image_uris && card.image_uris.normal) {
         return card.image_uris.normal;
       }
-      // Then check for image_url from your API
-      else if (card.image_url) {
-        return card.image_url;
-      }
-      // Fallback to placeholder
+      // Fallback
       return 'placeholder-image.jpg';
-    }
-  }
+    },
+    handleAddToDeck(card) {
+      console.log("Add button clicked for:", card.name);
+      this.$emit('add-to-deck', card);
+    },
+    handleImageClick(card) {
+      this.$emit('select-card', card);
+    },
+    
+  },
+  
 };
 </script>
 

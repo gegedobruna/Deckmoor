@@ -44,9 +44,16 @@
         <div 
           v-for="card in sortedCards" 
           :key="card.id" 
-          class="deck-card" 
-          :data-card-id="card.id"
-          @click="viewCardDetails(card)"
+          class="deck-card"
+          :class="{ 
+            'invalid-color': !isColorIdentityValid(card),
+            'invalid-format': !isLegalInCommander(card) 
+          }"
+          :data-invalid-reason="
+            !isColorIdentityValid(card) ? 'Wrong colors for commander' : 
+            !isLegalInCommander(card) ? 'Banned/unserious set' : ''
+          "
+          @click="$emit('view-card', card)"
         >
           <div class="card-info">
             <div class="card-header">
@@ -62,9 +69,20 @@
             </div>
           </div>
           <div class="card-actions">
-            <button v-if="isBasicLand(card)" class="add-btn" @click.stop="addOneCard(card, $event)">+</button>
-            <button class="remove-btn" @click.stop="removeCard(card)">−</button>
-          </div>
+  <button 
+    v-if="canHaveMultipleCopies(card)" 
+    class="add-btn" 
+    @click.stop="addOneCard(card, $event)" 
+  >
+    +
+  </button>
+  <button 
+    class="remove-btn" 
+    @click.stop="removeCard(card)"
+  >
+    −
+  </button>
+</div>
         </div>
       </div>
       
@@ -169,7 +187,6 @@ export default {
   computed: {
     sortedCards() {
       if (!this.activeDeck) return [];
-      // Sort cards by mana value (cmc) in ascending order
       return this.activeDeck.cards
         .slice()
         .sort((a, b) => (a.cmc || 0) - (b.cmc || 0));
@@ -179,23 +196,50 @@ export default {
       return this.activeDeck.cards.reduce((total, card) => total + (card.count || 1), 0);
     }
   },
-  watch: {
-    // Add a watcher for the selectedCard prop
-    selectedCard(newCard) {
-      if (newCard && this.activeDeck) {
-        if (this.isBasicLand(newCard)) {
-          this.selectedLand = newCard;
-          this.showAddLandsModal = true;
-        } else {
-          this.addCardToDeck(newCard);
-        }
-      }
-    }
-  },
   methods: {
-    isBasicLand(card) {
-      return card?.type_line?.toLowerCase().includes('basic land');
-    },
+    canHaveMultipleCopies(card) {
+    // 1. Check if it's a basic land (includes "Basic Land - X" and "Basic Snow Land - X")
+    const isBasicLand = /basic (snow )?land/i.test(card.type_line);
+    
+    // 2. Check if it's a special card that allows multiples (e.g., "Relentless Rats")
+    const allowsMultiples = card.oracle_text?.toLowerCase()
+      .includes("a deck can have any number of cards named");
+    
+    return isBasicLand || allowsMultiples;
+  },
+  isColorIdentityValid(card) {
+    if (!this.activeDeck?.commander) return true; // No commander? Allow (edge case)
+    
+    const commanderColors = this.activeDeck.commander.color_identity || [];
+    const cardColors = card.color_identity || [];
+
+    // Lands with no color identity are allowed (e.g., Wastes, Command Tower)
+    if (cardColors.length === 0 && card.type_line?.toLowerCase().includes("land")) {
+      return true;
+    }
+
+    // Card's colors must be a subset of commander's colors
+    return cardColors.every(color => commanderColors.includes(color));
+  },
+  // Check if card is legal in Commander
+  isLegalInCommander(card) {
+    // Banned cards (Scryfall API marks them with `legalities.commander: "banned"`)
+    if (card.legalities?.commander === "banned") return false;
+
+    // Unserious sets (e.g., "Unfinity", "Unglued", "Unhinged")
+    const unseriousSets = ["unf", "ugl", "unh", "ust", "und"];
+    if (unseriousSets.includes(card.set?.toLowerCase())) {
+      return false;
+    }
+
+    // Silver-bordered/acorn cards (not legal in any format)
+    if (card.border_color === "silver" || card.frame_effects?.includes("acorn")) {
+      return false;
+    }
+
+    return true;
+  },
+  
     formatColors(colors) {
       if (!colors || colors.length === 0) return '<span class="ms ms-c"></span>';
       return colors
@@ -206,32 +250,17 @@ export default {
       if (!manaCost) return '';
       return manaCost.replace(/\{([^}]+)\}/g, (match, symbol) => {
         const symbolMap = {
-          'W': 'ms-w',
-          'U': 'ms-u',
-          'B': 'ms-b',
-          'R': 'ms-r',
-          'G': 'ms-g',
-          '0': 'ms-0',
-          '1': 'ms-1',
-          '2': 'ms-2',
-          '3': 'ms-3',
-          '4': 'ms-4',
-          '5': 'ms-5',
-          '6': 'ms-6',
-          '7': 'ms-7',
-          '8': 'ms-8',
-          '9': 'ms-9',
-          '10': 'ms-10',
-          'X': 'ms-x',
-          'T': 'ms-tap',
-          'Q': 'ms-untap',
+          'W': 'ms-w', 'U': 'ms-u', 'B': 'ms-b', 'R': 'ms-r', 'G': 'ms-g',
+          '0': 'ms-0', '1': 'ms-1', '2': 'ms-2', '3': 'ms-3', '4': 'ms-4',
+          '5': 'ms-5', '6': 'ms-6', '7': 'ms-7', '8': 'ms-8', '9': 'ms-9',
+          '10': 'ms-10', 'X': 'ms-x', 'T': 'ms-tap', 'Q': 'ms-untap',
         };
         const cssClass = symbolMap[symbol.toUpperCase()] || 'ms';
         return `<span class="ms ${cssClass}">${symbol}</span>`;
       });
     },
     loadDeck(deck) {
-      this.activeDeck = JSON.parse(JSON.stringify(deck)); // Create a deep copy
+      this.activeDeck = JSON.parse(JSON.stringify(deck));
     },
     backToDecks() {
       this.activeDeck = null;
@@ -239,84 +268,79 @@ export default {
     viewCardDetails(card) {
       this.$emit('view-card', card);
     },
-    // Add one copy of a card that's already in the deck
-    addOneCard(card, event) {
-      const index = this.activeDeck.cards.findIndex(c => c.id === card.id);
-      if (index !== -1) {
-        if (this.isBasicLand(card)) {
-          // For basic lands, set count or increment
-          if (!this.activeDeck.cards[index].count) {
-            this.activeDeck.cards[index].count = 2; // First increment
-          } else {
-            this.activeDeck.cards[index].count++;
-          }
-          
-          // Add animation classes
-          if (event) {
-            const cardElement = event.target.closest('.deck-card');
-            if (cardElement) {
-              cardElement.classList.add('card-added');
-              setTimeout(() => {
-                cardElement.classList.remove('card-added');
-              }, 300);
-            }
-          }
-        }
-      }
-    },
+   
     addCardToDeck(card) {
-      const cardClone = JSON.parse(JSON.stringify(card)); // Create a deep copy
-      // Check if this card is already in the deck
-      const index = this.activeDeck.cards.findIndex(c => c.id === card.id);
+      if (!this.activeDeck) {
+        alert("Please select a deck first!");
+        return false;
+      }
+      // 1. Check Color Identity (strict)
+        if (!this.isColorIdentityValid(card)) {
+          alert(`❌ This card (${card.name}) doesn't match your commander's color identity!`);
+          return false;
+        }
+
+        // 2. Check Format Legality (warning)
+        if (!this.isLegalInCommander(card)) {
+          const confirmAdd = confirm(
+            `⚠️ "${card.name}" is not legal in Commander (banned/unserious set). Add anyway?`
+          );
+          if (!confirmAdd) return false;
+        }
+
+      console.log("Attempting to add card:", card.name); // Debug log
+
+      const existingIndex = this.activeDeck.cards.findIndex(c => c.id === card.id);
       
-      if (index !== -1) {
-        // Card already exists, increment count if it's a basic land
-        if (this.isBasicLand(card)) {
-          if (!this.activeDeck.cards[index].count) {
-            this.activeDeck.cards[index].count = 2;
+      if (existingIndex >= 0) {
+        if (this.canHaveMultipleCopies(card)) {
+          // For lands, increment count
+          if (!this.activeDeck.cards[existingIndex].count) {
+            this.activeDeck.cards[existingIndex].count = 2;
           } else {
-            this.activeDeck.cards[index].count++;
+            this.activeDeck.cards[existingIndex].count++;
           }
         } else {
-          // Non-lands are usually limited to 1 copy in Commander
-          // For simplicity we'll just show a message and not add duplicates
-          alert('This card is already in your deck. In Commander format, you can only have one copy of each non-basic land card.');
+          alert("This non-land card is already in your deck (max 1 copy).");
         }
       } else {
-        // Card not in deck, add it
-        this.activeDeck.cards.push(cardClone);
-        
-        // Animate the new card
-        this.$nextTick(() => {
-          const cardElements = document.querySelectorAll('.deck-card');
-          const newCard = Array.from(cardElements).find(el => el.dataset.cardId === cardClone.id);
-          if (newCard) {
-            newCard.classList.add('card-added');
-            setTimeout(() => {
-              newCard.classList.remove('card-added');
-            }, 300);
+        // Add new card
+        const newCard = JSON.parse(JSON.stringify(card));
+        this.activeDeck.cards.push(newCard);
+      }
+      this.$forceUpdate(); 
+    },
+    addOneCard(card, event) {
+      const index = this.activeDeck.cards.findIndex(c => c.id === card.id);
+      if (index !== -1 && this.canHaveMultipleCopies(card)) {
+        if (!this.activeDeck.cards[index].count) {
+          this.activeDeck.cards[index].count = 2;
+        } else {
+          this.activeDeck.cards[index].count++;
+        }
+        if (event) {
+          const cardElement = event.target.closest('.deck-card');
+          if (cardElement) {
+            cardElement.classList.add('card-added');
+            setTimeout(() => cardElement.classList.remove('card-added'), 300);
           }
-        });
+        }
       }
     },
     addMultipleLands() {
       if (this.selectedLand && this.landCount > 0) {
         const index = this.activeDeck.cards.findIndex(c => c.id === this.selectedLand.id);
-        
         if (index !== -1) {
-          // Land already exists, update count
           if (!this.activeDeck.cards[index].count) {
             this.activeDeck.cards[index].count = this.landCount;
           } else {
-            this.activeDeck.cards[index].count += this.landCount - 1; // -1 because one copy is already counted
+            this.activeDeck.cards[index].count += this.landCount - 1;
           }
         } else {
-          // Land not in deck, add it with count
           const landClone = JSON.parse(JSON.stringify(this.selectedLand));
           landClone.count = this.landCount;
           this.activeDeck.cards.push(landClone);
         }
-        
         this.showAddLandsModal = false;
         this.selectedLand = null;
         this.landCount = 1;
@@ -326,10 +350,8 @@ export default {
       const index = this.activeDeck.cards.findIndex(c => c.id === card.id);
       if (index !== -1) {
         if (card.count && card.count > 1) {
-          // If multiple copies, reduce count
           this.activeDeck.cards[index].count--;
         } else {
-          // Remove the card entirely
           this.activeDeck.cards.splice(index, 1);
         }
       }
@@ -340,39 +362,20 @@ export default {
     },
     async searchCommanderCards() {
       try {
-        if (this.commanderQuery.length < 2) {
-          // Default search for legendary creatures if no query
-          const response = await axios.get('https://api.scryfall.com/cards/search', {
-            params: {
-              q: 'type:legendary type:creature',
-              order: 'edhrec',
-              unique: 'cards',
-              page: 1
-            }
-          });
-          this.commanderResults = response.data.data.slice(0, 20);
-        } else {
-          const response = await axios.get('https://api.scryfall.com/cards/search', {
-            params: {
-              q: `${this.commanderQuery} type:legendary type:creature`,
-              order: 'name',
-              unique: 'cards',
-              page: 1
-            }
-          });
-          this.commanderResults = response.data.data;
-        }
+        const params = this.commanderQuery.length < 2 
+          ? { q: 'type:legendary type:creature', order: 'edhrec' } 
+          : { q: `${this.commanderQuery} type:legendary type:creature`, order: 'name' };
+        
+        const response = await axios.get('https://api.scryfall.com/cards/search', { params });
+        this.commanderResults = response.data.data.slice(0, 20);
       } catch (error) {
-        console.error('Error searching for commanders:', error);
+        console.error('Error searching commanders:', error);
         this.commanderResults = [];
       }
     },
     selectCommander(card) {
       this.selectedCommander = card;
       this.showCommanderSearch = false;
-      
-      // Extract color identity from commander
-      this.commanderColors = card.color_identity || [];
     },
     createDeck() {
       if (this.newDeckName && this.selectedCommander) {
@@ -381,29 +384,23 @@ export default {
           name: this.newDeckName,
           commander: this.selectedCommander,
           colors: this.selectedCommander.color_identity || [],
-          cards: [this.selectedCommander], // Add commander as the first card
+          cards: [this.selectedCommander],
           created: new Date().toISOString()
         };
-        
         this.decks.push(newDeck);
         this.saveDeckToStorage();
-        
-        // Reset and close modal
         this.newDeckName = '';
         this.selectedCommander = null;
         this.showCreateDeckModal = false;
-        
-        // Activate the new deck
         this.loadDeck(newDeck);
       }
     },
     saveDeck() {
-      // Find and update the deck in the decks array
       const index = this.decks.findIndex(deck => deck.id === this.activeDeck.id);
       if (index !== -1) {
         this.decks[index] = JSON.parse(JSON.stringify(this.activeDeck));
         this.saveDeckToStorage();
-        alert('Deck saved successfully!');
+        alert('Deck saved!');
       }
     },
     saveDeckToStorage() {
@@ -411,76 +408,9 @@ export default {
     },
     loadDecksFromStorage() {
       const storedDecks = localStorage.getItem('mtg-decks');
-      if (storedDecks) {
-        this.decks = JSON.parse(storedDecks);
-      }
+      if (storedDecks) this.decks = JSON.parse(storedDecks);
     },
     showDeckStats() {
-      // Calculate type distribution
-      const typeDistribution = {
-        creatures: 0,
-        instants: 0,
-        sorceries: 0,
-        artifacts: 0,
-        enchantments: 0,
-        planeswalkers: 0,
-        lands: 0
-      };
-      
-      this.activeDeck.cards.forEach(card => {
-        const count = card.count || 1;
-        const type = card.type_line.toLowerCase();
-        
-        if (type.includes('creature')) typeDistribution.creatures += count;
-        else if (type.includes('instant')) typeDistribution.instants += count;
-        else if (type.includes('sorcery')) typeDistribution.sorceries += count;
-        else if (type.includes('artifact')) typeDistribution.artifacts += count;
-        else if (type.includes('enchantment')) typeDistribution.enchantments += count;
-        else if (type.includes('planeswalker')) typeDistribution.planeswalkers += count;
-        else if (type.includes('land')) typeDistribution.lands += count;
-      });
-      
-      // Calculate mana curve
-      const manaCurve = {
-        '0': 0, '1': 0, '2': 0, '3': 0, '4': 0, '5': 0, '6': 0, '7+': 0
-      };
-      
-      this.activeDeck.cards.forEach(card => {
-        const count = card.count || 1;
-        const cmc = card.cmc || 0;
-        
-        if (cmc >= 7) {
-          manaCurve['7+'] += count;
-        } else {
-          manaCurve[Math.floor(cmc).toString()] += count;
-        }
-      });
-      
-      // Show stats in an alert for now (could be improved with a modal)
-      alert(`
-        Deck Stats: ${this.activeDeck.name}
-        
-        Card Type Distribution:
-        - Creatures: ${typeDistribution.creatures}
-        - Instants: ${typeDistribution.instants}
-        - Sorceries: ${typeDistribution.sorceries}
-        - Artifacts: ${typeDistribution.artifacts}
-        - Enchantments: ${typeDistribution.enchantments}
-        - Planeswalkers: ${typeDistribution.planeswalkers}
-        - Lands: ${typeDistribution.lands}
-        
-        Mana Curve:
-        - 0 CMC: ${manaCurve['0']}
-        - 1 CMC: ${manaCurve['1']}
-        - 2 CMC: ${manaCurve['2']}
-        - 3 CMC: ${manaCurve['3']}
-        - 4 CMC: ${manaCurve['4']}
-        - 5 CMC: ${manaCurve['5']}
-        - 6 CMC: ${manaCurve['6']}
-        - 7+ CMC: ${manaCurve['7+']}
-        
-        Total Cards: ${this.totalCards}/100
-      `);
     }
   },
   mounted() {
@@ -488,7 +418,6 @@ export default {
   }
 };
 </script>
-
 
 <style scoped>
 .deck-sidebar {
@@ -1165,4 +1094,37 @@ export default {
   background-color: var(--secondary-color);
   border-radius: 20px;
 }
+
+/* Invalid color identity (wrong colors for commander) */
+.deck-card.invalid-color {
+  border-left: 4px solid #ff3b30; /* Red border */
+  background-color: rgba(255, 59, 48, 0.1); /* Light red background */
+}
+
+/* Invalid format (banned/unserious sets) */
+.deck-card.invalid-format {
+  border-left: 4px solid #ff9500; /* Orange border */
+  background-color: rgba(255, 149, 0, 0.1); /* Light orange background */
+}
+
+/* Optional: Tooltip explaining why the card is invalid */
+.deck-card.invalid-color::after,
+.deck-card.invalid-format::after {
+  content: attr(data-invalid-reason);
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  background: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.deck-card:hover::after {
+  opacity: 1;
+}
+
 </style>

@@ -1,6 +1,6 @@
 <template>
   <div class="card-details">
-    <!-- Card Faces (for double-sided cards) -->
+    <!-- Double-Faced Card -->
     <template v-if="card.card_faces">
       <CardFlip :card="card" />
       <div v-for="(face, index) in card.card_faces" :key="index" class="card-face">
@@ -37,7 +37,10 @@
 import CardFlip from './CardFlip.vue';
 export default {
   props: {
-    card: Object,
+    card: {
+      type: Object,
+      required: true
+    }
   },
   components: {
     CardFlip,

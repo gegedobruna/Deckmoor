@@ -245,188 +245,169 @@
   };
   </script>
   
-  <style scoped>
-  .filter-panel {
-    background-color: #f8f8f8;
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 20px;
-    width: 300px;
-  }
   
-  .filter-panel h3 {
-    margin-top: 0;
-    margin-bottom: 15px;
-    font-size: 18px;
-    color: #333;
-  }
-  
-  .filter-section {
-    margin-bottom: 20px;
-  }
-  
-  .filter-section h4 {
-    margin-top: 0;
-    margin-bottom: 10px;
-    font-size: 16px;
-    color: #555;
-  }
-  
-  .mana-cost-display {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 10px;
-    background-color: #e0e0e0;
-    padding: 8px 12px;
-    border-radius: 4px;
-    font-weight: bold;
-  }
-  
-  .mana-cost-slider {
-    padding: 0 10px;
-  }
-  
-  input[type="range"] {
-    width: 100%;
-    margin: 8px 0;
-  }
-  
-  .color-helper-text {
-    margin: 0 0 8px 0;
-    font-size: 12px;
-    color: #666;
-    font-style: italic;
-  }
-  
-  .color-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  
-  .color-btn {
-    border: 2px solid transparent;
-    border-radius: 4px;
-    padding: 5px 10px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: all 0.2s;
-  }
-  
-  .color-btn.selected {
-    border-color: #333;
-    box-shadow: 0 0 5px rgba(0,0,0,0.3);
-  }
-  
-  .multiselect {
-    width: 100%;
-    height: 120px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 5px;
-  }
-  
-  .checkbox-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-  
-  .checkbox-group label {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    cursor: pointer;
-  }
-  
-  .set-selector {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  
-  .set-selector input {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-  }
-  
-  .set-list {
-    max-height: 150px;
-    overflow-y: auto;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 10px;
-  }
-  
-  .set-list label {
-    display: block;
-    margin-bottom: 5px;
-    cursor: pointer;
-  }
-  
-  .pt-filters {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  
-  .pt-filter {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  
-  .pt-filter label {
-    width: 80px;
-  }
-  
-  .pt-filter select {
-    flex: 1;
-    padding: 5px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-  }
-  
-  .pt-filter input {
-    width: 60px;
-    padding: 5px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-  }
-  
-  .clear-filters {
-    width: 100%;
-    padding: 10px;
-    background-color: #f1f1f1;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-  }
-  
-  .clear-filters:hover {
-    background-color: #e0e0e0;
-  }
-  
-  @media (max-width: 768px) {
-    .filter-panel {
-      width: 100%;
-    }
-    
-    .pt-filters {
-      flex-direction: column;
-    }
-    
-    .pt-filter {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-    
-    .pt-filter label {
-      width: 100%;
-      margin-bottom: 5px;
-    }
-  }
-  </style>
+<style scoped>
+.filter-panel {
+  background-color: white;
+  border-radius: 8px;
+  padding: var(--spacing-unit);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: var(--spacing-unit);
+}
+
+.filter-panel h3 {
+  margin-top: 0;
+  margin-bottom: var(--spacing-unit);
+  font-size: 1.25rem;
+  color: var(--text-color);
+}
+
+.filter-section {
+  margin-bottom: var(--spacing-unit);
+}
+
+.filter-section h4 {
+  margin-top: 0;
+  margin-bottom: calc(var(--spacing-unit) / 2);
+  font-size: 1rem;
+  color: var(--text-color);
+}
+
+.mana-cost-display {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-unit);
+  background-color: var(--background-color);
+  padding: calc(var(--spacing-unit) / 2);
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.mana-cost-slider {
+  padding: 0 calc(var(--spacing-unit) / 2);
+}
+
+input[type="range"] {
+  width: 100%;
+  margin: calc(var(--spacing-unit) / 2) 0;
+}
+
+.color-helper-text {
+  margin: 0 0 calc(var(--spacing-unit) / 2) 0;
+  font-size: 0.875rem;
+  color: var(--secondary-color);
+  font-style: italic;
+}
+
+.color-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--spacing-unit) / 2);
+}
+
+.color-btn {
+  border: 2px solid transparent;
+  border-radius: 4px;
+  padding: calc(var(--spacing-unit) / 2) var(--spacing-unit);
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+
+.color-btn.selected {
+  border-color: var(--text-color);
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+.multiselect {
+  width: 100%;
+  height: 120px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: calc(var(--spacing-unit) / 2);
+}
+
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--spacing-unit) / 2);
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing-unit) / 2);
+  cursor: pointer;
+}
+
+.set-selector {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) / 2);
+}
+
+.set-selector input {
+  width: 100%;
+  padding: calc(var(--spacing-unit) / 2);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+}
+
+.set-list {
+  max-height: 150px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: var(--spacing-unit);
+}
+
+.set-list label {
+  display: block;
+  margin-bottom: calc(var(--spacing-unit) / 2);
+  cursor: pointer;
+}
+
+.pt-filters {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) / 2);
+}
+
+.pt-filter {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing-unit) / 2);
+}
+
+.pt-filter label {
+  width: 80px;
+}
+
+.pt-filter select {
+  flex: 1;
+  padding: calc(var(--spacing-unit) / 2);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+}
+
+.pt-filter input {
+  width: 60px;
+  padding: calc(var(--spacing-unit) / 2);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+}
+
+.clear-filters {
+  width: 100%;
+  padding: var(--spacing-unit);
+  background-color: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.clear-filters:hover {
+  background-color: var(--border-color);
+}
+</style>
