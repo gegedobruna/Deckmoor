@@ -45,8 +45,7 @@
               @click="toggleColor(color.code)"
               :title="color.name"
             >
-
-              <i :class="color.icon"></i>
+              <span class="mana small" :class="`s${color.code.toLowerCase()}`"></span>
             </button>
           </div>
         </div>
@@ -237,13 +236,13 @@ export default {
         'Basic', 'Legendary', 'Snow', 'World'
       ],
       colorOptions: [
-        { code: 'W', name: 'White', background: '#f8f5e4', icon: 'ms ms-w ms-cost' },
-        { code: 'U', name: 'Blue', background: '#c0d8e8', icon: 'ms ms-u ms-cost' },
-        { code: 'B', name: 'Black', background: '#cbc2bf', icon: 'ms ms-b ms-cost' },
-        { code: 'R', name: 'Red', background: '#e8b8a0', icon: 'ms ms-r ms-cost' },
-        { code: 'G', name: 'Green', background: '#c8d6c2', icon: 'ms ms-g ms-cost' },
-        { code: 'C', name: 'Colorless', background: '#e8e8e8', icon: 'ms ms-c ms-cost' }
-      ]
+        { code: 'W', name: 'White', background: '#f8f5e4' },
+        { code: 'U', name: 'Blue', background: '#c0d8e8' },
+        { code: 'B', name: 'Black', background: '#cbc2bf' },
+        { code: 'R', name: 'Red', background: '#e8b8a0' },
+        { code: 'G', name: 'Green', background: '#c8d6c2' },
+        { code: 'C', name: 'Colorless', background: '#e8e8e8' }
+      ],
     };
   },
   watch: {
@@ -332,6 +331,23 @@ export default {
   }
 };
 </script>
+
+<style>
+@import '../assets/mana-master/css/mana-cost.css';
+
+/* Add custom styling for color filter buttons */
+.color-btn .mana {
+  width: 1.5em;
+  height: 1.5em;
+  vertical-align: middle;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
+}
+
+.color-btn.selected .mana {
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.4));
+}
+
+</style>
 
 <style scoped>
 /* ==================== */
@@ -650,7 +666,6 @@ export default {
   color: rgba(0, 0, 0, 0.7);
 }
 
-/* Add specific border colors for each color to match their backgrounds */
 .color-btn[style*="background-color: #f8f5e4"].selected { /* White */
   border-color: #d1c9a3;
 }

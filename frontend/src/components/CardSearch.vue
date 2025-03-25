@@ -3,13 +3,21 @@
     <h1>MTG Card Search</h1>
 
     <!-- Search bar and dropdown container -->
-    <div class="search-container">
-      <input 
-        v-model="query" 
-        @input="debouncedSearch" 
-        @keyup.enter="submitSearch" 
-        placeholder="Search cards..." 
-      />
+     <!-- Search controls container -->
+     <div class="search-controls">
+      <div class="search-box">
+        <input 
+          v-model="query" 
+          @input="debouncedSearch" 
+          @keyup.enter="submitSearch" 
+          placeholder="Search cards..." 
+          class="search-input"
+        />
+
+      <!-- Search button -->
+      <button @click="submitSearch" class="search-button">
+          <i class="fas fa-search"></i> Search
+        </button>
 
       <!-- Autocomplete component -->
       <CardAutocomplete 
@@ -19,10 +27,11 @@
       />
     </div>
 
-    <!-- Filter Button - Changed to open popup -->
-    <button @click="showFilterPopup = true" class="filter-toggle">
-      Show Filters
-    </button>
+    <!-- Filter button -->
+    <button @click="showFilterPopup = true" class="filter-button">
+          <i class="fas fa-filter"></i> Advanced Options
+        </button>
+    </div>
 
     <!-- Filter Popup -->
     <FilterPopup 
@@ -109,7 +118,7 @@ export default {
         types: [],
         supertypes: [],
         colors: [],
-        subtype: "",
+        // subtype: "",
         manaCost: { min: 0, max: 20 },
         power: { operator: "=", value: null },
         toughness: { operator: "=", value: null }
@@ -176,10 +185,10 @@ export default {
         params.supertypes = this.activeFilters.supertypes.join(',');
       }
       
-      // Subtype filter
-      if (this.activeFilters.subtype) {
-        params.subtype = this.activeFilters.subtype;
-      }
+      // // Subtype filter
+      // if (this.activeFilters.subtype) {
+      //   params.subtype = this.activeFilters.subtype;
+      // }
       
       // Power filter
       if (this.activeFilters.power.value !== null) {
@@ -229,7 +238,7 @@ export default {
         types: [],
         supertypes: [],
         colors: [],
-        subtype: "",
+        // subtype: "",
         manaCost: { min: 0, max: 20 },
         power: { operator: "=", value: null },
         toughness: { operator: "=", value: null }
@@ -265,34 +274,111 @@ export default {
 </script>
 
 <style scoped>
-/* Your existing styles remain the same */
-.search-container {
-  position: relative; 
-  width: 100%;
-  max-width: 600px; 
-  margin: 0 auto 20px; 
+.card-search-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
 }
 
-.search-container input {
+h1 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.search-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
-  padding: 10px;
+  max-width: 600px;
+}
+
+.search-container {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.search-input {
+  flex: 1;
+  padding: 10px 15px;
+  font-size: 14px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  min-width: 200px;
+  transition: all 0.3s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #4299e1;
+  box-shadow: 0 2px 8px rgba(66, 153, 225, 0.3);
+}
+
+
+.search-container input {
+  flex: 1;
+  padding: 10px 15px;
   font-size: 16px;
   border: 1px solid #ddd;
   border-radius: 5px;
   box-sizing: border-box;
-  margin: 0;
+  min-width: 300px;
 }
 
-.filter-toggle {
-  display: block;
-  margin: 0 auto 20px;
-  padding: 8px 16px;
-  background-color: #4682B4;
+.search-button {
+  background-color: #4299e1;
   color: white;
+
+}
+
+.search-button, .filter-button {
+  padding: 10px;
+  height: 40px;
   border: none;
-  border-radius: 5px;
+  border-radius: 10%;
   cursor: pointer;
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.search-button:hover {
+  background-color: #3182ce;
+  transform: scale(1.05);
+}
+
+
+.filter-button {
+  padding: 8px 12px;
+    background-color: #f7fafc;
+    color: #4a5568;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    margin-top: 10px;
+}
+
+.filter-button:hover {
+  background-color: #ebf8ff;
+  border-color: #bee3f8;
+  color: #3182ce;
+  transform: scale(1.05)
 }
 
 .results-area {

@@ -305,24 +305,36 @@ export default {
       return true;
     },
     formatColors(colors) {
-      if (!colors || colors.length === 0) return '<span class="ms ms-c"></span>';
+      if (!colors || colors.length === 0) return '<span class="mana small sc"></span>';
       return colors
-        .map(color => `<span class="ms ms-${color.toLowerCase()}"></span>`)
+        .map(color => `<span class="mana small s${color.toLowerCase()}"></span>`)
         .join(' ');
     },
+
+    // Update the formatManaCost method
     formatManaCost(manaCost) {
       if (!manaCost) return '';
       return manaCost.replace(/\{([^}]+)\}/g, (match, symbol) => {
-        const symbolMap = {
-          'W': 'ms-w', 'U': 'ms-u', 'B': 'ms-b', 'R': 'ms-r', 'G': 'ms-g',
-          '0': 'ms-0', '1': 'ms-1', '2': 'ms-2', '3': 'ms-3', '4': 'ms-4',
-          '5': 'ms-5', '6': 'ms-6', '7': 'ms-7', '8': 'ms-8', '9': 'ms-9',
-          '10': 'ms-10', 'X': 'ms-x', 'T': 'ms-tap', 'Q': 'ms-untap',
-        };
-        const cssClass = symbolMap[symbol.toUpperCase()] || 'ms';
-        return `<span class="ms ${cssClass}">${symbol}</span>`;
+        let cssClass = symbol.toLowerCase();
+        
+        // Handle special cases
+        if (cssClass === 't' || cssClass === 'tap') {
+          cssClass = 't';
+        }
+        if (cssClass === 'q' || cssClass === 'untap') {
+          cssClass = 'q';
+        }
+        if (cssClass.includes('/')) {
+          cssClass = cssClass.replace('/', '');
+        }
+        if (/^\d+$/.test(cssClass)) {
+          cssClass = cssClass.padStart(2, '0').slice(-2);
+        }
+        
+        return `<span class="mana small s${cssClass}"></span>`;
       });
     },
+    
     loadDeck(deck) {
       this.activeDeck = JSON.parse(JSON.stringify(deck));
     },
@@ -476,6 +488,45 @@ export default {
   }
 };
 </script>
+
+<style>
+@import '../assets/mana-master/css/mana-cost.css';
+.ms {
+  margin-right: 2px;
+}
+
+/* Custom sizing for DeckSidebar */
+.deck-sidebar .mana {
+  vertical-align: middle;
+  margin: 0 2px;
+}
+
+/* Larger size for color identity symbols */
+.deck-sidebar .deck-colors .mana {
+  width: 1.4em !important;
+  height: 1.4em !important;
+  background-size: auto 700% !important;
+}
+
+/* Larger size for mana costs in card text */
+.deck-sidebar .mana-symbols .mana {
+  width: 1em !important;
+  height: 1em !important;
+  background-size: auto 700% !important;
+}
+
+/* Commander section symbols */
+.deck-sidebar .commander-section .mana {
+  width: 1.1em !important;
+  height: 1.1em !important;
+}
+
+/* Modal symbols */
+.deck-sidebar .modal-content .mana {
+  width: 1.4em !important;
+  height: 1.4em !important;
+}
+</style>
 
 <style scoped>
 .deck-sidebar {

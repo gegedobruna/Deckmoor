@@ -82,7 +82,7 @@ export default {
     close() {
       this.$emit("close");
     },
-      addToDeckAndClose() {
+    addToDeckAndClose() {
       console.log("Emitting add-to-deck for:", this.card.name); // Debug
       this.$emit('add-to-deck', this.card);
       this.close();
@@ -90,23 +90,32 @@ export default {
     formatManaCost(text) {
       if (!text) return "N/A";
       
-      // Convert mana symbols to lowercase for proper class naming
+      // Convert mana symbols to mana-master classes
       return text.replace(/\{([^}]+)\}/g, (match, symbol) => {
         // Handle special cases
         let cssClass = symbol.toLowerCase();
         
         // Handle tap symbol
         if (cssClass === 't' || cssClass === 'tap') {
-          cssClass = 'tap';
+          cssClass = 't';
         }
         
         // Handle untap symbol
         if (cssClass === 'q' || cssClass === 'untap') {
-          cssClass = 'untap';
+          cssClass = 'q';
         }
         
-        return `<i class="ms ms-${cssClass}"></i>`;
-
+        // Handle hybrid symbols
+        if (cssClass.includes('/')) {
+          cssClass = cssClass.replace('/', '');
+        }
+        
+        // Handle numbers
+        if (/^\d+$/.test(cssClass)) {
+          cssClass = cssClass.padStart(2, '0').slice(-2); // Ensure two digits for numbers
+        }
+        
+        return `<span class="mana medium s${cssClass}"></span>`;
       });
     },
     formatColorIdentity(colors) {
@@ -127,83 +136,15 @@ export default {
 </script>
 
 <style>
- /* Move these outside the scoped style to ensure they apply to dynamically created elements */
- .ms {
-  display: inline-block;
-  width: 1.3em;
-  height: 1.3em;
-  border-radius: 50%;
-  margin: 0 2px;
-  background-color: #ccc;
-  position: relative;
-  text-align: center;
+/* Import the mana symbols CSS */
+@import '../assets/mana-master/css/mana-cost.css';
+
+.mana-symbols .mana {
+  margin-right: 2px;
   vertical-align: middle;
 }
 
- .ms.ms-u::before {
-  position: absolute;
-  top: 47%;
-  left: 48%;
-  transform: translate(-50%, -50%);
-}
-
-.ms.ms-r::before, .ms.ms-w::before, .ms.ms-g::before, .ms.ms-b::before {
-  position: absolute;
-  top: 49%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-/* White mana */
-.ms-w {
-  background-color: #F8F6D8;
-  color: #111;
-}
-
-/* Blue mana */
-.ms-u {
-  background-color: #C1D7E9;
-  color: #111;
-}
-
-/* Black mana */
-.ms-b {
-  background-color: #BAB1AB;
-  color: black;
-}
-
-/* Red mana */
-.ms-r {
-  background-color: #E49977;
-  color: black;
-}
-
-/* Green mana */
-.ms-g {
-  background-color: #A3C095;
-  color: #111;
-}
-
-/* Generic/colorless mana */
-.ms-0, .ms-1, .ms-2, .ms-3, .ms-4, .ms-5, 
-.ms-6, .ms-7, .ms-8, .ms-9, .ms-10, .ms-x {
-  background-color: #ccc;
-  color: #111;
-}
-
-/* Special symbols */
-.ms-tap, .ms-untap {
-  background-color: #ccc;
-  color: #111;
-}
-
-/* Specific font size adjustments for the mana symbols */
-.mana-symbols .ms {
-  font-size: 18px;
-  margin-right: 2px;
-}
-
-/* Oracle text mana symbols alignment */
-.oracle-text p .ms {
+.oracle-text p .mana {
   vertical-align: middle;
   position: relative;
   top: -1px;
