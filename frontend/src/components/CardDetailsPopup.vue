@@ -105,7 +105,8 @@ export default {
           cssClass = 'untap';
         }
         
-        return `<i class="ms ms-${cssClass}">${cssClass}</i>`;
+        return `<i class="ms ms-${cssClass}"></i>`;
+
       });
     },
     formatColorIdentity(colors) {
@@ -126,21 +127,32 @@ export default {
 </script>
 
 <style>
-/* Move these outside the scoped style to ensure they apply to dynamically created elements */
-.ms {
+ /* Move these outside the scoped style to ensure they apply to dynamically created elements */
+ .ms {
   display: inline-block;
   width: 1.3em;
   height: 1.3em;
-  font-size: 1em;
   border-radius: 50%;
   margin: 0 2px;
+  background-color: #ccc;
+  position: relative;
   text-align: center;
-  line-height: 1.3em;
-  color: white;
-  font-weight: bold;
-  box-shadow: -0.05em 0.12em 0 0 rgba(0, 0, 0, 0.3);
+  vertical-align: middle;
 }
 
+ .ms.ms-u::before {
+  position: absolute;
+  top: 47%;
+  left: 48%;
+  transform: translate(-50%, -50%);
+}
+
+.ms.ms-r::before, .ms.ms-w::before, .ms.ms-g::before, .ms.ms-b::before {
+  position: absolute;
+  top: 49%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
 /* White mana */
 .ms-w {
   background-color: #F8F6D8;

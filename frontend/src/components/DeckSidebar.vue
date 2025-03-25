@@ -5,6 +5,9 @@
       <div v-for="deck in decks" :key="deck.id" class="deck-item" @click="loadDeck(deck)">
         <span class="deck-name">{{ deck.name }}</span>
         <span class="deck-colors" v-html="formatColors(deck.colors)"></span>
+        <button class="delete-deck-btn" @click.stop="promptDeleteDeck(deck)">
+          🗑️
+        </button>
       </div>
 
       <button class="create-deck-btn" @click="showCreateDeckModal = true">
@@ -26,9 +29,14 @@
             </span>
           </div>
         </div>
-        <button class="stats-btn" @click="showDeckStats">
-          <span class="stats-icon">📊</span> Stats
-        </button>
+        <div class="deck-header-right">
+          <button class="stats-btn" @click="showDeckStats">
+            <span class="stats-icon">📊</span> Stats
+          </button>
+          <button class="delete-deck-btn" @click="promptDeleteDeck(activeDeck)">
+            🗑️
+          </button>
+        </div>
       </div>
       
       <div v-if="activeDeck.commander" class="commander-section">
@@ -67,20 +75,20 @@
             </div>
           </div>
           <div class="card-actions">
-  <button 
-    v-if="canHaveMultipleCopies(card)" 
-    class="add-btn" 
-    @click.stop="addOneCard(card, $event)" 
-  >
-    +
-  </button>
-  <button 
-    class="remove-btn" 
-    @click.stop="removeCard(card)"
-  >
-    −
-  </button>
-</div>
+            <button 
+              v-if="canHaveMultipleCopies(card)" 
+              class="add-btn" 
+              @click.stop="addOneCard(card, $event)" 
+            >
+              +
+            </button>
+            <button 
+              class="remove-btn" 
+              @click.stop="removeCard(card)"
+            >
+              −
+            </button>
+          </div>
         </div>
       </div>
       
@@ -156,6 +164,18 @@
         </div>
       </div>
     </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div v-if="showDeleteConfirmation" class="modal-overlay" @click.self="showDeleteConfirmation = false">
+      <div class="modal-content">
+        <h2 class="modal-title">Delete Deck</h2>
+        <p>Are you sure you want to delete "{{ deckToDelete?.name }}"? This action cannot be undone.</p>
+        <div class="modal-actions">
+          <button class="cancel-btn" @click="showDeleteConfirmation = false">Cancel</button>
+          <button class="confirm-btn delete-btn" @click="confirmDeleteDeck">Delete</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -174,12 +194,14 @@ export default {
       showCreateDeckModal: false,
       showCommanderSearch: false,
       showAddLandsModal: false,
+      showDeleteConfirmation: false,
       newDeckName: '',
       selectedCommander: null,
       commanderQuery: '',
       commanderResults: [],
       selectedLand: null,
       landCount: 1,
+      deckToDelete: null,
     };
   },
   computed: {
@@ -195,80 +217,87 @@ export default {
     }
   },
   methods: {
+    promptDeleteDeck(deck) {
+      this.deckToDelete = deck;
+      this.showDeleteConfirmation = true;
+    },
+    confirmDeleteDeck() {
+      if (!this.deckToDelete) return;
+      
+      const index = this.decks.findIndex(d => d.id === this.deckToDelete.id);
+      if (index !== -1) {
+        this.decks.splice(index, 1);
+        this.saveDeckToStorage();
+        
+        if (this.activeDeck && this.activeDeck.id === this.deckToDelete.id) {
+          this.activeDeck = null;
+        }
+      }
+      
+      this.showDeleteConfirmation = false;
+      this.deckToDelete = null;
+    },
     getCardBorderStyle(card) {
-  const colors = card.color_identity || [];
-  if (colors.length === 0) return 'background: rgba(200, 200, 200, 0.1)'; // Subtle gray for colorless
-  
-  // Single color - soft glow effect
-  if (colors.length === 1) {
-    const colorMap = {
-      'W': 'rgba(248, 231, 185, 0.3)', // White with transparency
-      'U': 'rgba(179, 206, 234, 0.3)',  // Blue
-      'B': 'rgba(116, 159, 157, 0.3)',      // Black
-      'R': 'rgba(235, 159, 130, 0.3)',    // Red
-      'G': 'rgba(196, 211, 202, 0.3)'      // Green
-    };
-    return `background: linear-gradient(to right, ${colorMap[colors[0]]}, transparent)`;
-  }
-  
-  // Multi-color - smooth diagonal gradient
-  const gradientStops = colors.map((color, index) => {
-    const colorMap = {
-      'W': 'rgba(248, 231, 185, 0.3)', // White with transparency
-      'U': 'rgba(179, 206, 234, 0.3)',  // Blue
-      'B': 'rgba(116, 159, 157, 0.3)',      // Black
-      'R': 'rgba(235, 159, 130, 0.3)',    // Red
-      'G': 'rgba(196, 211, 202, 0.3)'      // Green
-    };
-    const position = (index / colors.length) * 100;
-    return `${colorMap[color]} ${position}%`;
-  }).join(', ');
-  
-  return `background: linear-gradient(135deg, ${gradientStops}, transparent 90%)`;
-},
+      const colors = card.color_identity || [];
+      if (colors.length === 0) return 'background: rgba(200, 200, 200, 0.1)';
+      
+      if (colors.length === 1) {
+        const colorMap = {
+          'W': 'rgba(248, 231, 185, 0.3)',
+          'U': 'rgba(179, 206, 234, 0.3)',
+          'B': 'rgba(116, 159, 157, 0.3)',
+          'R': 'rgba(235, 159, 130, 0.3)',
+          'G': 'rgba(196, 211, 202, 0.3)'
+        };
+        return `background: linear-gradient(to right, ${colorMap[colors[0]]}, transparent)`;
+      }
+      
+      const gradientStops = colors.map((color, index) => {
+        const colorMap = {
+          'W': 'rgba(248, 231, 185, 0.3)',
+          'U': 'rgba(179, 206, 234, 0.3)',
+          'B': 'rgba(116, 159, 157, 0.3)',
+          'R': 'rgba(235, 159, 130, 0.3)',
+          'G': 'rgba(196, 211, 202, 0.3)'
+        };
+        const position = (index / colors.length) * 100;
+        return `${colorMap[color]} ${position}%`;
+      }).join(', ');
+      
+      return `background: linear-gradient(135deg, ${gradientStops}, transparent 90%)`;
+    },
     canHaveMultipleCopies(card) {
-    // 1. Check if it's a basic land (includes "Basic Land - X" and "Basic Snow Land - X")
-    const isBasicLand = /basic (snow )?land/i.test(card.type_line);
-    
-    // 2. Check if it's a special card that allows multiples (e.g., "Relentless Rats")
-    const allowsMultiples = card.oracle_text?.toLowerCase()
-      .includes("a deck can have any number of cards named");
-    
-    return isBasicLand || allowsMultiples;
-  },
-  isColorIdentityValid(card) {
-    if (!this.activeDeck?.commander) return true; // No commander? Allow (edge case)
-    
-    const commanderColors = this.activeDeck.commander.color_identity || [];
-    const cardColors = card.color_identity || [];
+      const isBasicLand = /basic (snow )?land/i.test(card.type_line);
+      const allowsMultiples = card.oracle_text?.toLowerCase()
+        .includes("a deck can have any number of cards named");
+      return isBasicLand || allowsMultiples;
+    },
+    isColorIdentityValid(card) {
+      if (!this.activeDeck?.commander) return true;
+      
+      const commanderColors = this.activeDeck.commander.color_identity || [];
+      const cardColors = card.color_identity || [];
 
-    // Lands with no color identity are allowed (e.g., Wastes, Command Tower)
-    if (cardColors.length === 0 && card.type_line?.toLowerCase().includes("land")) {
+      if (cardColors.length === 0 && card.type_line?.toLowerCase().includes("land")) {
+        return true;
+      }
+
+      return cardColors.every(color => commanderColors.includes(color));
+    },
+    isLegalInCommander(card) {
+      if (card.legalities?.commander === "banned") return false;
+
+      const unseriousSets = ["unf", "ugl", "unh", "ust", "und"];
+      if (unseriousSets.includes(card.set?.toLowerCase())) {
+        return false;
+      }
+
+      if (card.border_color === "silver" || card.frame_effects?.includes("acorn")) {
+        return false;
+      }
+
       return true;
-    }
-
-    // Card's colors must be a subset of commander's colors
-    return cardColors.every(color => commanderColors.includes(color));
-  },
-  // Check if card is legal in Commander
-  isLegalInCommander(card) {
-    // Banned cards (Scryfall API marks them with `legalities.commander: "banned"`)
-    if (card.legalities?.commander === "banned") return false;
-
-    // Unserious sets (e.g., "Unfinity", "Unglued", "Unhinged")
-    const unseriousSets = ["unf", "ugl", "unh", "ust", "und"];
-    if (unseriousSets.includes(card.set?.toLowerCase())) {
-      return false;
-    }
-
-    // Silver-bordered/acorn cards (not legal in any format)
-    if (card.border_color === "silver" || card.frame_effects?.includes("acorn")) {
-      return false;
-    }
-
-    return true;
-  },
-  
+    },
     formatColors(colors) {
       if (!colors || colors.length === 0) return '<span class="ms ms-c"></span>';
       return colors
@@ -297,33 +326,27 @@ export default {
     viewCardDetails(card) {
       this.$emit('view-card', card);
     },
-   
     addCardToDeck(card) {
       if (!this.activeDeck) {
         alert("Please select a deck first!");
         return false;
       }
-      // 1. Check Color Identity (strict)
-        if (!this.isColorIdentityValid(card)) {
-          alert(`❌ This card (${card.name}) doesn't match your commander's color identity!`);
-          return false;
-        }
+      if (!this.isColorIdentityValid(card)) {
+        alert(`❌ This card (${card.name}) doesn't match your commander's color identity!`);
+        return false;
+      }
 
-        // 2. Check Format Legality (warning)
-        if (!this.isLegalInCommander(card)) {
-          const confirmAdd = confirm(
-            `⚠️ "${card.name}" is not legal in Commander (banned/unserious set). Add anyway?`
-          );
-          if (!confirmAdd) return false;
-        }
-
-      console.log("Attempting to add card:", card.name); // Debug log
+      if (!this.isLegalInCommander(card)) {
+        const confirmAdd = confirm(
+          `⚠️ "${card.name}" is not legal in Commander (banned/unserious set). Add anyway?`
+        );
+        if (!confirmAdd) return false;
+      }
 
       const existingIndex = this.activeDeck.cards.findIndex(c => c.id === card.id);
       
       if (existingIndex >= 0) {
         if (this.canHaveMultipleCopies(card)) {
-          // For lands, increment count
           if (!this.activeDeck.cards[existingIndex].count) {
             this.activeDeck.cards[existingIndex].count = 2;
           } else {
@@ -333,7 +356,6 @@ export default {
           alert("This non-land card is already in your deck (max 1 copy).");
         }
       } else {
-        // Add new card
         const newCard = JSON.parse(JSON.stringify(card));
         this.activeDeck.cards.push(newCard);
       }
@@ -440,6 +462,7 @@ export default {
       if (storedDecks) this.decks = JSON.parse(storedDecks);
     },
     showDeckStats() {
+      // Deck stats functionality
     }
   },
   mounted() {
@@ -512,6 +535,28 @@ export default {
   box-shadow: var(--card-shadow);
 }
 
+.delete-deck-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--error-color);
+  font-size: 1.1rem;
+  padding: 4px 8px;
+  margin-left: 8px;
+  transition: all 0.2s ease;
+  z-index: 2; /* Ensure it's above the clickable deck item */
+}
+
+.delete-deck-btn:hover {
+  transform: scale(1.2);
+  color: #d11a2a;
+}
+
+.deck-header-right {
+  display: flex;
+  gap: 8px;
+}
+
 .create-deck-btn {
   width: 100%;
   padding: 12px;
@@ -548,7 +593,6 @@ export default {
   flex: 1;
 }
 
-/* Updated back button style with new accent color */
 .back-btn {
   padding: 8px 12px;
   background-color: var(--accent-color);
@@ -570,7 +614,6 @@ export default {
   margin-right: 6px;
 }
 
-/* New stats button */
 .stats-btn {
   padding: 8px 12px;
   background-color: var(--primary-color);
@@ -604,7 +647,7 @@ export default {
   font-weight: bold;
   padding: 4px 8px;
   border-radius: var(--border-radius);
-  background-color: var(--background-color);
+  color:#393939
 }
 
 .card-count.over-limit {
@@ -648,7 +691,6 @@ export default {
   margin-bottom: 20px;
 }
 
-/* Revised deck card layout */
 .deck-card {
   display: flex;
   justify-content: space-between;
@@ -676,13 +718,11 @@ export default {
   border-radius: 6px;
 }
 
-/* Color intensity variations */
 .deck-card[style*="White"] { --color-intensity: 0.8; }
 .deck-card[style*="Blue"] { --color-intensity: 0.7; }
 .deck-card[style*="Black"] { --color-intensity: 0.6; }
 .deck-card[style*="Red"] { --color-intensity: 0.7; }
 .deck-card[style*="Green"] { --color-intensity: 0.7; }
-
 
 .deck-card:hover {
   transform: translateY(-2px);
@@ -710,12 +750,12 @@ export default {
 
 .card-count {
   font-size: 12px;
-  color: #aaa;
+  color: #595959;
   margin-left: 8px;
 }
 
 .card-count.count-changed {
-  color: #fff;
+  color: #393939;
   font-weight: bold;
 }
 
@@ -727,27 +767,25 @@ export default {
   margin-right: 4px;
 }
 
-/* Simplified card actions */
 .card-actions {
   display: flex;
   align-items: center;
 }
 
-/* Show add button only for lands */
 .add-btn {
   background: none;
   border: 1px solid var(--border-color);
-  border-radius: 50%;
   color: var(--secondary-color);
   font-size: 1.125rem;
   cursor: pointer;
-  width: 28px;
-  height: 28px;
+  width: 10px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all var(--transition-speed) ease;
   margin-left: 8px;
+  background-color: var(--background-color);
 }
 
 .add-btn:hover {
@@ -763,13 +801,13 @@ export default {
   color: var(--secondary-color);
   font-size: 1rem;
   cursor: pointer;
-  width: 28px;
-  height: 28px;
+  width: 10px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all var(--transition-speed) ease;
-  border-radius: 50%;
+  background-color: var(--background-color);
 }
 
 .remove-btn:hover {
@@ -814,7 +852,6 @@ export default {
   opacity: 0.7;
 }
 
-/* Modal styles */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1008,6 +1045,16 @@ export default {
   cursor: not-allowed;
 }
 
+.delete-btn {
+  background-color: var(--error-color) !important;
+  border-color: var(--error-color) !important;
+}
+
+.delete-btn:hover {
+  background-color: #d11a2a !important;
+  border-color: #d11a2a !important;
+}
+
 .search-commander-btn {
   background-color: var(--background-color);
   border: 1px solid var(--border-color);
@@ -1022,13 +1069,12 @@ export default {
   color: var(--primary-color);
 }
 
-/* Animation for adding cards */
 @keyframes cardAdded {
   0% {
     background-color: transparent;
   }
   50% {
-    background-color: rgba(56, 161, 105, 0.2); /* Light green flash */
+    background-color: rgba(56, 161, 105, 0.2);
   }
   100% {
     background-color: transparent;
@@ -1039,7 +1085,6 @@ export default {
   animation: cardAdded 0.3s ease-in-out;
 }
 
-/* Card count animation */
 @keyframes countChanged {
   0% {
     transform: scale(1);
@@ -1057,20 +1102,24 @@ export default {
   animation: countChanged 0.3s ease-in-out;
 }
 
-/* Mana symbols styling */
 .ms {
   display: inline-block;
-  height: 15px;
-  width: 15px;
-  font-size: 15px;
-  line-height: 15px;
-  vertical-align: middle;
+  width: 1.3em;
+  height: 1.3em;
+  font-size: 1em;
   border-radius: 50%;
-  color: #111;
+  margin: 0 2px;
   text-align: center;
-  box-shadow: -1px 1px 0 rgba(0, 0, 0, 0.85);
-  background-color: #ccc;
-  margin: 0 1px;
+  line-height: 1.3em;
+  color: white;
+  font-weight: bold;
+  box-shadow: -0.05em 0.12em 0 0 rgba(0, 0, 0, 0.3);
+  vertical-align: middle;
+  position: relative;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .ms-w {
@@ -1098,7 +1147,6 @@ export default {
   background-color: #ccc;
 }
 
-/* Media queries for responsive design */
 @media (max-width: 768px) {
   .deck-sidebar {
     width: 100%;
@@ -1120,7 +1168,6 @@ export default {
   }
 }
 
-/* Scrollbar styling */
 .deck-sidebar::-webkit-scrollbar {
   width: 8px;
 }
@@ -1147,19 +1194,16 @@ export default {
   border-radius: 20px;
 }
 
-/* Invalid color identity (wrong colors for commander) *//* Invalid states */
 .deck-card.invalid-color {
   background: linear-gradient(to right, rgba(255, 59, 48, 0.2), transparent) !important;
   border-left: 3px solid rgba(255, 59, 48, 0.5);
 }
 
-/* Invalid format (banned/unserious sets) */
 .deck-card.invalid-format {
   background: linear-gradient(to right, rgba(255, 149, 0, 0.2), transparent) !important;
   border-left: 3px solid rgba(255, 149, 0, 0.5);
 }
 
-/* Optional: Tooltip explaining why the card is invalid */
 .deck-card.invalid-color::after,
 .deck-card.invalid-format::after {
   content: attr(data-invalid-reason);
@@ -1184,5 +1228,4 @@ export default {
 .color-B { background: #150b00; }
 .color-R { background: #d3202a; }
 .color-G { background: #00733e; }
-
 </style>
