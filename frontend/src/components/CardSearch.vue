@@ -1,36 +1,32 @@
 <template>
-  <div>
+  <div class="card-search-container">
     <h1>MTG Card Search</h1>
 
-    <!-- Search bar and dropdown container -->
-     <!-- Search controls container -->
-     <div class="search-controls">
-      <div class="search-box">
-        <input 
-          v-model="query" 
-          @input="debouncedSearch" 
-          @keyup.enter="submitSearch" 
-          placeholder="Search cards..." 
-          class="search-input"
+    <div class="search-controls">
+      <div class="search-box-wrapper">
+        <div class="search-box">
+          <input 
+            v-model="query" 
+            @input="debouncedSearch" 
+            @keyup.enter="submitSearch" 
+            placeholder="Search cards..." 
+            class="search-input"
+          />
+          <button @click="submitSearch" class="search-button">
+            <i class="fas fa-search"></i> Search
+          </button>
+        </div>
+        
+        <CardAutocomplete 
+          v-if="results?.length > 0"
+          :results="results" 
+          @select-card="showCardDetails" 
         />
-
-      <!-- Search button -->
-      <button @click="submitSearch" class="search-button">
-          <i class="fas fa-search"></i> Search
-        </button>
-
-      <!-- Autocomplete component -->
-      <CardAutocomplete 
-        v-if="results?.length > 0"
-        :results="results" 
-        @select-card="showCardDetails" 
-      />
-    </div>
-
-    <!-- Filter button -->
-    <button @click="showFilterPopup = true" class="filter-button">
-          <i class="fas fa-filter"></i> Advanced Options
-        </button>
+      </div>
+      
+      <button @click="showFilterPopup = true" class="filter-button">
+        <i class="fas fa-filter"></i> Advanced Options
+      </button>
     </div>
 
     <!-- Filter Popup -->
@@ -293,12 +289,16 @@ h1 {
   margin-bottom: 20px;
 }
 
+.search-box-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+}
+
 .search-box {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 100%;
-  max-width: 600px;
 }
 
 .search-container {
@@ -379,6 +379,16 @@ h1 {
   border-color: #bee3f8;
   color: #3182ce;
   transform: scale(1.05)
+}
+
+.autocomplete-container {
+  position: absolute;
+  width: calc(100% - 48px); /* Accounts for search button */
+  max-width: 552px; /* Matches search box width minus button */
+  z-index: 10;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
 }
 
 .results-area {
