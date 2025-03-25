@@ -49,6 +49,7 @@
             'invalid-color': !isColorIdentityValid(card),
             'invalid-format': !isLegalInCommander(card) 
           }"
+          :style="getCardBorderStyle(card)"
           :data-invalid-reason="
             !isColorIdentityValid(card) ? 'Wrong colors for commander' : 
             !isLegalInCommander(card) ? 'Banned/unserious set' : ''
@@ -63,9 +64,6 @@
               <span class="card-count" :class="{'count-changed': card.count > 1}">
                 x{{ card.count || 1 }}
               </span>
-            </div>
-            <div class="card-details">
-              <span class="card-type">{{ card.type_line }}</span>
             </div>
           </div>
           <div class="card-actions">
@@ -197,6 +195,37 @@ export default {
     }
   },
   methods: {
+    getCardBorderStyle(card) {
+  const colors = card.color_identity || [];
+  if (colors.length === 0) return 'background: rgba(200, 200, 200, 0.1)'; // Subtle gray for colorless
+  
+  // Single color - soft glow effect
+  if (colors.length === 1) {
+    const colorMap = {
+      'W': 'rgba(248, 231, 185, 0.3)', // White with transparency
+      'U': 'rgba(179, 206, 234, 0.3)',  // Blue
+      'B': 'rgba(116, 159, 157, 0.3)',      // Black
+      'R': 'rgba(235, 159, 130, 0.3)',    // Red
+      'G': 'rgba(196, 211, 202, 0.3)'      // Green
+    };
+    return `background: linear-gradient(to right, ${colorMap[colors[0]]}, transparent)`;
+  }
+  
+  // Multi-color - smooth diagonal gradient
+  const gradientStops = colors.map((color, index) => {
+    const colorMap = {
+      'W': 'rgba(248, 231, 185, 0.3)', // White with transparency
+      'U': 'rgba(179, 206, 234, 0.3)',  // Blue
+      'B': 'rgba(116, 159, 157, 0.3)',      // Black
+      'R': 'rgba(235, 159, 130, 0.3)',    // Red
+      'G': 'rgba(196, 211, 202, 0.3)'      // Green
+    };
+    const position = (index / colors.length) * 100;
+    return `${colorMap[color]} ${position}%`;
+  }).join(', ');
+  
+  return `background: linear-gradient(135deg, ${gradientStops}, transparent 90%)`;
+},
     canHaveMultipleCopies(card) {
     // 1. Check if it's a basic land (includes "Basic Land - X" and "Basic Snow Land - X")
     const isBasicLand = /basic (snow )?land/i.test(card.type_line);
@@ -624,55 +653,78 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px;
-  border-radius: var(--border-radius);
-  margin-bottom: 6px;
-  border: 1px solid var(--border-color);
+  padding: 10px 12px;
+  margin: 4px 0;
+  border-radius: 6px;
   cursor: pointer;
-  transition: all var(--transition-speed) ease;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.deck-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: inherit;
+  z-index: -1;
+  border-radius: 6px;
+}
+
+/* Color intensity variations */
+.deck-card[style*="White"] { --color-intensity: 0.8; }
+.deck-card[style*="Blue"] { --color-intensity: 0.7; }
+.deck-card[style*="Black"] { --color-intensity: 0.6; }
+.deck-card[style*="Red"] { --color-intensity: 0.7; }
+.deck-card[style*="Green"] { --color-intensity: 0.7; }
+
+
 .deck-card:hover {
-  background-color: var(--background-color);
-  border-color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .card-info {
-  display: flex;
-  flex-direction: column;
   flex: 1;
+  overflow: hidden;
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 4px;
 }
 
 .card-name {
-  font-weight: 600;
-  color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
 }
 
 .card-count {
-  transition: all var(--transition-speed) ease;
-  display: inline-block;
-  font-size: 0.9rem;
+  font-size: 12px;
+  color: #aaa;
   margin-left: 8px;
-  padding: 2px 6px;
-  background-color: var(--background-color);
-  border-radius: 12px;
 }
 
-.count-changed {
-  color: var(--success-color);
+.card-count.count-changed {
+  color: #fff;
   font-weight: bold;
 }
 
-.card-type {
-  font-size: 0.9rem;
-  color: var(--secondary-color);
+.color-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 4px;
 }
 
 /* Simplified card actions */
@@ -1095,16 +1147,16 @@ export default {
   border-radius: 20px;
 }
 
-/* Invalid color identity (wrong colors for commander) */
+/* Invalid color identity (wrong colors for commander) *//* Invalid states */
 .deck-card.invalid-color {
-  border-left: 4px solid #ff3b30; /* Red border */
-  background-color: rgba(255, 59, 48, 0.1); /* Light red background */
+  background: linear-gradient(to right, rgba(255, 59, 48, 0.2), transparent) !important;
+  border-left: 3px solid rgba(255, 59, 48, 0.5);
 }
 
 /* Invalid format (banned/unserious sets) */
 .deck-card.invalid-format {
-  border-left: 4px solid #ff9500; /* Orange border */
-  background-color: rgba(255, 149, 0, 0.1); /* Light orange background */
+  background: linear-gradient(to right, rgba(255, 149, 0, 0.2), transparent) !important;
+  border-left: 3px solid rgba(255, 149, 0, 0.5);
 }
 
 /* Optional: Tooltip explaining why the card is invalid */
@@ -1126,5 +1178,11 @@ export default {
 .deck-card:hover::after {
   opacity: 1;
 }
+
+.color-W { background: #f8f8f7; }
+.color-U { background: #0e68ab; }
+.color-B { background: #150b00; }
+.color-R { background: #d3202a; }
+.color-G { background: #00733e; }
 
 </style>
