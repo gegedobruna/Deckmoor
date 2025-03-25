@@ -6,10 +6,10 @@ from typing import Optional, List
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080"],  # Allow your frontend origin
+    allow_origins=["http://localhost:8080"],
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all HTTP methods
-    allow_headers=["*"],  # Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 SCRYFALL_URL = "https://api.scryfall.com/cards/search"
 SCRYFALL_SETS_URL = "https://api.scryfall.com/sets"
@@ -29,7 +29,6 @@ async def get_sets():
         data = response.json()
 
         if "data" in data:
-            # Transform the data to the expected format
             sets = [{"code": set_data.get("code"), "name": set_data.get("name")}
                     for set_data in data.get("data", [])]
             return {"sets": sets}
@@ -47,90 +46,90 @@ async def search_cards(
         # Filter parameters
         mana_min: int = Query(0, ge=0),
         mana_max: int = Query(16, le=20),
-        colors: Optional[str] = None,  # Comma-separated list of colors
-        types: Optional[str] = None,  # Comma-separated list of types
-        rarities: Optional[str] = None,  # Comma-separated list of rarities
-        sets: Optional[str] = None,  # Comma-separated list of set codes
+        colors: Optional[str] = None,
+        types: Optional[str] = None,
+        supertypes: Optional[str] = None,
+        subtype: Optional[str] = None,
+        rarities: Optional[str] = None,
+        sets: Optional[str] = None,
         power_value: Optional[int] = None,
-        power_operator: Optional[str] = None,  # "equal", "greater", "less"
+        power_operator: Optional[str] = None,
         toughness_value: Optional[int] = None,
-        toughness_operator: Optional[str] = None  # "equal", "greater", "less"
+        toughness_operator: Optional[str] = None
 ):
     """
     Search for Magic: The Gathering cards with various filters.
-
-    The filters are converted to Scryfall syntax and included in the query.
     Returns only 15 cards per page for pagination.
     """
     try:
         # Parse filter parameters
         color_list = colors.split(',') if colors else []
         type_list = types.split(',') if types else []
+        supertype_list = supertypes.split(',') if supertypes else []
         rarity_list = rarities.split(',') if rarities else []
         set_list = sets.split(',') if sets else []
 
-        # Build Scryfall query
-        scryfall_query = query.strip()
+        # Build Scryfall query parts
+        scryfall_query_parts = []
+
+        # Add text query if exists
+        if query.strip():
+            scryfall_query_parts.append(query.strip())
 
         # Add mana cost filter
         if mana_min > 0 or mana_max < 16:
-            if scryfall_query:
-                scryfall_query += " "
-            scryfall_query += f"cmc>={mana_min} cmc<={mana_max}"
+            scryfall_query_parts.append(f"cmc>={mana_min} cmc<={mana_max}")
 
         # Add color filter
         if color_list:
             color_query = "c:" + "".join(color_list)
-            if scryfall_query:
-                scryfall_query += " "
-            scryfall_query += color_query
+            scryfall_query_parts.append(color_query)
 
-        # Add type filter
+        # Add type filter (AND logic)
         for type_name in type_list:
-            if scryfall_query:
-                scryfall_query += " "
-            scryfall_query += f"t:{type_name}"
+            scryfall_query_parts.append(f"t:{type_name}")
 
-        # Add rarity filter
-        for rarity in rarity_list:
-            if scryfall_query:
-                scryfall_query += " "
-            scryfall_query += f"r:{rarity}"
+        # Add supertype filter
+        for supertype in supertype_list:
+            scryfall_query_parts.append(f"t:{supertype}")
+
+        # Add subtype filter
+        if subtype:
+            scryfall_query_parts.append(f"st:{subtype}")
+
+        # Add rarity filter (OR logic)
+        if rarity_list:
+            rarity_query = " OR ".join([f"r:{rarity}" for rarity in rarity_list])
+            scryfall_query_parts.append(f"({rarity_query})")
 
         # Add set filter
         for set_code in set_list:
-            if scryfall_query:
-                scryfall_query += " "
-            scryfall_query += f"s:{set_code}"
+            scryfall_query_parts.append(f"s:{set_code}")
 
         # Add power filter
         if power_value is not None and power_operator:
             operator_map = {"equal": "=", "greater": ">", "less": "<"}
             op = operator_map.get(power_operator, "=")
-            if scryfall_query:
-                scryfall_query += " "
-            scryfall_query += f"pow{op}{power_value}"
+            scryfall_query_parts.append(f"pow{op}{power_value}")
 
         # Add toughness filter
         if toughness_value is not None and toughness_operator:
             operator_map = {"equal": "=", "greater": ">", "less": "<"}
             op = operator_map.get(toughness_operator, "=")
-            if scryfall_query:
-                scryfall_query += " "
-            scryfall_query += f"tou{op}{toughness_value}"
+            scryfall_query_parts.append(f"tou{op}{toughness_value}")
 
-        # If no query is provided and no filters are applied, return a default search
+        # Combine all query parts
+        scryfall_query = " ".join(scryfall_query_parts)
+
+        # Default search if no query/filters
         if not scryfall_query:
-            scryfall_query = "type:creature"  # Default search if no query/filters
+            scryfall_query = "type:creature"
 
-        # Make the API request to Scryfall
-        # Note: Scryfall doesn't support page_size parameter, so we'll handle pagination manually
+        # Pagination setup
         cards_per_page = 15
-
-        # Calculate which page of Scryfall results we need
-        # Scryfall has a default of 175 cards per page
         scryfall_page = ((page - 1) * cards_per_page) // 175 + 1
 
+        # Make API request
         response = requests.get(
             SCRYFALL_URL,
             params={"q": scryfall_query, "page": scryfall_page}
@@ -141,27 +140,20 @@ async def search_cards(
         if "data" in data:
             all_cards = data["data"]
             total_cards = data.get("total_cards", 0)
-
-            # Calculate the offset within the Scryfall page
             offset = ((page - 1) * cards_per_page) % 175
-
-            # Get the slice of 15 cards for this page
             paginated_cards = all_cards[offset:offset + cards_per_page]
 
-            # Check if we need to fetch the next page from Scryfall
+            # Handle cases where we need the next page
             if not paginated_cards and data.get("has_more", False):
-                # We need the next Scryfall page
                 next_response = requests.get(
                     SCRYFALL_URL,
                     params={"q": scryfall_query, "page": scryfall_page + 1}
                 )
                 next_response.raise_for_status()
                 next_data = next_response.json()
-
                 if "data" in next_data:
                     paginated_cards = next_data["data"][:cards_per_page]
 
-            # Determine if there are more pages
             has_more = (page * cards_per_page) < total_cards
 
             return {

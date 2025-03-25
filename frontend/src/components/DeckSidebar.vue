@@ -515,7 +515,7 @@ export default {
 .create-deck-btn {
   width: 100%;
   padding: 12px;
-  background-color: var(--primary-color);
+  background-color: #4682B4;
   color: white;
   border: none;
   border-radius: var(--border-radius);
@@ -752,8 +752,8 @@ export default {
 
 .add-btn:hover {
   color: white;
-  background-color: var(--success-color);
-  border-color: var(--success-color);
+  background-color: #4682B4;
+  border-color: #4682B4;
   transform: scale(1.1);
 }
 
@@ -795,7 +795,7 @@ export default {
 .save-deck-btn {
   width: 100%;
   padding: 12px;
-  background-color: var(--primary-color);
+  background-color: #4682B4;
   color: white;
   border: none;
   border-radius: var(--border-radius);
@@ -994,7 +994,7 @@ export default {
 }
 
 .confirm-btn {
-  background-color: var(--primary-color);
+  background-color: #4682B4;
   border: 1px solid var(--primary-color);
   color: white;
 }

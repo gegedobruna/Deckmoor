@@ -26,13 +26,13 @@
 
     <!-- Filter Popup -->
     <FilterPopup 
-      v-if="showFilterPopup"
-      :isOpen="showFilterPopup"
-      :allSets="allSets"
-      @close-popup="showFilterPopup = false"
-      @apply-filters="applyFilters"
-      @clear-filters="clearFilters"
-    />
+    v-if="showFilterPopup"
+    :isOpen="showFilterPopup"
+    :allSets="allSets"
+    :currentFilters="activeFilters"
+    @close-popup="showFilterPopup = false"
+    @apply-filters="handleApplyFilters"
+  />
 
     <!-- Results Area -->
     <div class="results-area">
@@ -93,6 +93,7 @@ export default {
   },
   data() {
     return {
+      showFilterPopup: false, // This was missing
       query: "",
       results: [],
       cards: [],   
@@ -100,10 +101,22 @@ export default {
       selectedCardForDeck: null,
       page: 1,
       hasMore: false,
-      showFilterPopup: false, // Changed from showFilters to showFilterPopup
       hasSearched: false,
       allSets: [],
-      activeFilters: null
+      activeFilters: {
+        sets: [],
+        rarities: [],
+        types: [],
+        supertypes: [],
+        subtype: "",
+        manaCost: {
+          min: 0,
+          max: 20
+        },
+        manaValue: { operator: "=", value: null },
+        power: { operator: "=", value: null },
+        toughness: { operator: "=", value: null }
+      },
     };
   },
   created() {
@@ -135,68 +148,70 @@ export default {
     },
     
     async fetchCards(newPage = 1) {
-      try {
-        const params = { 
-          page: newPage,
-          query: this.query.trim()
-        };
-        
-        // Apply filters if they exist
-        if (this.activeFilters) {
-          // Set filters
-          if (this.activeFilters.sets.length > 0) {
-            params.sets = this.activeFilters.sets.join(',');
-          }
-          
-          // Rarity filters
-          if (this.activeFilters.rarities.length > 0) {
-            params.rarities = this.activeFilters.rarities.join(',');
-          }
-          
-          // Type filters
-          if (this.activeFilters.types.length > 0) {
-            params.types = this.activeFilters.types.join(',');
-          }
-          
-          // Supertype filters
-          if (this.activeFilters.supertypes.length > 0) {
-            params.supertypes = this.activeFilters.supertypes.join(',');
-          }
-          
-          // Subtype filter
-          if (this.activeFilters.subtype) {
-            params.subtype = this.activeFilters.subtype;
-          }
-          
-          // Mana value filter
-          if (this.activeFilters.manaValue.value !== null) {
-            params.mana_value = this.activeFilters.manaValue.value;
-            params.mana_operator = this.activeFilters.manaValue.operator;
-          }
-          
-          // Power filter
-          if (this.activeFilters.power.value !== null) {
-            params.power_value = this.activeFilters.power.value;
-            params.power_operator = this.activeFilters.power.operator;
-          }
-          
-          // Toughness filter
-          if (this.activeFilters.toughness.value !== null) {
-            params.toughness_value = this.activeFilters.toughness.value;
-            params.toughness_operator = this.activeFilters.toughness.operator;
-          }
-        }
-        
-        const response = await axios.get("http://127.0.0.1:8000/search", { params });
-        this.cards = response.data.cards || [];
-        this.hasMore = response.data.has_more || false;
-        this.page = newPage;
-      } catch (error) {
-        console.error("Error fetching cards:", error);
-        this.cards = [];
-        this.hasMore = false;
+  try {
+    const params = { 
+      page: newPage,
+      query: this.query.trim(),
+      mana_min: this.activeFilters.manaCost?.min || 0,
+      mana_max: this.activeFilters.manaCost?.max || 20,
+    };
+    
+    // Apply all filters if they exist
+    if (this.activeFilters) {
+      // Set filters
+      if (this.activeFilters.sets.length > 0) {
+        params.sets = this.activeFilters.sets.join(',');
       }
-    },
+      
+      // Rarity filters
+      if (this.activeFilters.rarities.length > 0) {
+        params.rarities = this.activeFilters.rarities.join(',');
+      }
+      
+      // Type filters
+      if (this.activeFilters.types.length > 0) {
+        params.types = this.activeFilters.types.join(',');
+      }
+      
+      // Supertype filters
+      if (this.activeFilters.supertypes.length > 0) {
+        params.supertypes = this.activeFilters.supertypes.join(',');
+      }
+      
+      // Subtype filter
+      if (this.activeFilters.subtype) {
+        params.subtype = this.activeFilters.subtype;
+      }
+      
+      // Mana value filter
+      if (this.activeFilters.manaValue.value !== null) {
+        params.mana_value = this.activeFilters.manaValue.value;
+        params.mana_operator = this.activeFilters.manaValue.operator;
+      }
+      
+      // Power filter
+      if (this.activeFilters.power.value !== null) {
+        params.power_value = this.activeFilters.power.value;
+        params.power_operator = this.activeFilters.power.operator;
+      }
+      
+      // Toughness filter
+      if (this.activeFilters.toughness.value !== null) {
+        params.toughness_value = this.activeFilters.toughness.value;
+        params.toughness_operator = this.activeFilters.toughness.operator;
+      }
+    }
+    
+    const response = await axios.get("http://127.0.0.1:8000/search", { params });
+    this.cards = response.data.cards || [];
+    this.hasMore = response.data.has_more || false;
+    this.page = newPage;
+  } catch (error) {
+    console.error("Error fetching cards:", error);
+    this.cards = [];
+    this.hasMore = false;
+  }
+},
     
     showCardDetails(card) {
       this.selectedCard = card;
@@ -208,9 +223,24 @@ export default {
       this.page = 1;
       this.fetchCards(1);
     },
+
+    handleApplyFilters(newFilters) {
+      this.activeFilters = newFilters;
+      this.page = 1;
+      this.fetchCards(1);
+    },
     
     clearFilters() {
-      this.activeFilters = null;
+      this.activeFilters = { 
+        sets: [],
+        rarities: [],
+        types: [],
+        supertypes: [],
+        subtype: "",
+        manaValue: { operator: "=", value: null },
+        power: { operator: "=", value: null },
+        toughness: { operator: "=", value: null }
+      };
       this.page = 1;
       this.fetchCards(1);
     },
@@ -238,7 +268,7 @@ export default {
       // Handle deck saved event if needed
     }
   }
-};
+}
 </script>
 
 <style scoped>

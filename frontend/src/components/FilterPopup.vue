@@ -2,11 +2,12 @@
   <div v-if="isOpen" class="popup-overlay" @click.self="closePopup">
     <div class="filter-popup">
       <div class="popup-header">
-        <h3>Filters</h3>
+        <h3>Card Filters</h3>
         <button class="close-btn" @click="closePopup">×</button>
       </div>
       
       <div class="popup-content">
+        <!-- Set Filter -->
         <div class="filter-section">
           <h4>Set</h4>
           <div class="set-selector">
@@ -15,26 +16,155 @@
               v-model="setSearchQuery" 
               placeholder="Search sets..." 
               @input="filterSets"
+              class="search-input"
             />
             <div class="set-list">
-              <label v-for="set in filteredSets" :key="set.code">
+              <label v-for="set in filteredSets" :key="set.code" class="set-item">
                 <input 
                   type="checkbox" 
                   :value="set.code" 
                   v-model="filters.sets"
+                  class="set-checkbox"
                 />
-                {{ set.name }} ({{ set.code }})
+                <span class="set-name">{{ set.name }}</span>
+                <span class="set-code">{{ set.code.toUpperCase() }}</span>
               </label>
             </div>
           </div>
         </div>
         
-        <!-- Other filter sections remain the same -->
+        <!-- Rarity Filter -->
+        <div class="filter-section">
+          <h4>Rarity</h4>
+          <div class="rarity-buttons">
+            <button 
+              v-for="rarity in rarityOptions" 
+              :key="rarity.code"
+              :class="['rarity-btn', { selected: filters.rarities.includes(rarity.code) }]"
+              :style="{ backgroundColor: rarity.color }"
+              @click="toggleRarity(rarity.code)"
+              :title="rarity.name"
+            >
+              {{ rarity.symbol }}
+            </button>
+          </div>
+        </div>
+        
+        <!-- Type Filter -->
+        <div class="filter-section">
+          <h4>Card Type</h4>
+          <div class="type-buttons">
+            <button
+              v-for="type in typeOptions"
+              :key="type"
+              :class="['type-btn', { selected: filters.types.includes(type) }]"
+              @click="toggleType(type)"
+            >
+              {{ type }}
+            </button>
+          </div>
+        </div>
+        
+        <!-- Supertype Filter -->
+        <div class="filter-section">
+          <h4>Supertype</h4>
+          <div class="supertype-buttons">
+            <button
+              v-for="supertype in supertypeOptions"
+              :key="supertype"
+              :class="['supertype-btn', { selected: filters.supertypes.includes(supertype) }]"
+              @click="toggleSupertype(supertype)"
+            >
+              {{ supertype }}
+            </button>
+          </div>
+        </div>
+        
+        <!-- Subtype Filter -->
+        <div class="filter-section">
+          <h4>Subtype</h4>
+          <input 
+            type="text" 
+            v-model="filters.subtype" 
+            placeholder="e.g. Elf, Wizard, Dragon"
+            class="subtype-input"
+          />
+        </div>
+        
+        <!-- Mana Value Filter -->
+        <div class="filter-section">
+    <h4>Mana Cost</h4>
+    <div class="mana-cost-filters">
+      <div class="mana-cost-filter">
+        <label>Minimum:</label>
+        <input 
+          type="number" 
+          v-model.number="filters.manaCost.min" 
+          min="0" 
+          max="20"
+          class="mana-input"
+        />
+      </div>
+      <div class="mana-cost-filter">
+        <label>Maximum:</label>
+        <input 
+          type="number" 
+          v-model.number="filters.manaCost.max" 
+          min="0" 
+          max="20"
+          class="mana-input"
+        />
+      </div>
+    </div>
+  </div>
+        
+        <!-- Power/Toughness Filters -->
+        <div class="pt-filters">
+          <div class="filter-section">
+            <h4>Power</h4>
+            <div class="value-filter">
+              <select v-model="filters.power.operator" class="operator-select">
+                <option value="=">=</option>
+                <option value=">">≥</option>
+                <option value="<">≤</option>
+              </select>
+              <input 
+                type="number" 
+                v-model.number="filters.power.value" 
+                min="0"
+                class="value-input"
+                placeholder="0"
+              />
+            </div>
+          </div>
+          
+          <div class="filter-section">
+            <h4>Toughness</h4>
+            <div class="value-filter">
+              <select v-model="filters.toughness.operator" class="operator-select">
+                <option value="=">=</option>
+                <option value=">">≥</option>
+                <option value="<">≤</option>
+              </select>
+              <input 
+                type="number" 
+                v-model.number="filters.toughness.value" 
+                min="0"
+                class="value-input"
+                placeholder="0"
+              />
+            </div>
+          </div>
+        </div>
       </div>
       
       <div class="popup-footer">
-        <button class="clear-btn" @click="clearFilters">Clear Filters</button>
-        <button class="apply-btn" @click="applyFilters">Apply Filters</button>
+        <button class="clear-btn" @click="clearFilters">
+          <i class="fas fa-trash-alt"></i> Clear All
+        </button>
+        <button class="apply-btn" @click="applyFilters">
+          <i class="fas fa-check"></i> Apply Filters
+        </button>
       </div>
     </div>
   </div>
@@ -51,33 +181,62 @@ export default {
     isOpen: {
       type: Boolean,
       default: false
-    }
-  },
-  data() {
-    return {
-      filters: {
+    },
+    currentFilters: {
+      type: Object,
+      default: () => ({
         sets: [],
         rarities: [],
         types: [],
         supertypes: [],
         subtype: "",
-        manaValue: {
-          operator: "=",
-          value: null
-        },
-        power: {
-          operator: "=",
-          value: null
-        },
-        toughness: {
-          operator: "=",
-          value: null
-        }
-      },
+        manaValue: { operator: "=", value: null },
+        power: { operator: "=", value: null },
+        toughness: { operator: "=", value: null }
+      })
+    }
+  },
+  data() {
+    return {
+      filters: JSON.parse(JSON.stringify(this.currentFilters)),
       setSearchQuery: '',
-      filteredSets: []
+      filteredSets: this.allSets,
+      manaCost: this.currentFilters.manaCost || { min: 0, max: 20 },
+      
+      // Add these data properties:
+      rarityOptions: [
+        { code: 'common', name: 'Common', symbol: 'C', color: '#b5b5b5' },
+        { code: 'uncommon', name: 'Uncommon', symbol: 'U', color: '#c0c0c0' },
+        { code: 'rare', name: 'Rare', symbol: 'R', color: '#e6c200' },
+        { code: 'mythic', name: 'Mythic Rare', symbol: 'M', color: '#e67e00' },
+        { code: 'special', name: 'Special', symbol: 'S', color: '#a335ee' },
+        { code: 'bonus', name: 'Bonus', symbol: 'B', color: '#ff5555' }
+      ],
+      typeOptions: [
+        'Artifact', 'Creature', 'Enchantment', 
+        'Instant', 'Land', 'Planeswalker', 
+        'Sorcery', 'Tribal'
+      ],
+      supertypeOptions: [
+        'Basic', 'Legendary', 'Snow', 'World'
+      ]
     };
   },
+  watch: {
+    allSets: { 
+      handler(newSets) {
+        this.filteredSets = newSets;
+      },
+      immediate: true
+    },
+    currentFilters: {
+      handler(newFilters) {
+        this.filters = JSON.parse(JSON.stringify(newFilters));
+      },
+      deep: true
+    }
+  },
+
   methods: {
     filterSets() {
       if (!this.setSearchQuery.trim()) {
@@ -90,11 +249,36 @@ export default {
         );
       }
     },
+    toggleRarity(rarity) {
+      const index = this.filters.rarities.indexOf(rarity);
+      if (index === -1) {
+        this.filters.rarities.push(rarity);
+      } else {
+        this.filters.rarities.splice(index, 1);
+      }
+    },
+    toggleType(type) {
+      const index = this.filters.types.indexOf(type);
+      if (index === -1) {
+        this.filters.types.push(type);
+      } else {
+        this.filters.types.splice(index, 1);
+      }
+    },
+    toggleSupertype(supertype) {
+      const index = this.filters.supertypes.indexOf(supertype);
+      if (index === -1) {
+        this.filters.supertypes.push(supertype);
+      } else {
+        this.filters.supertypes.splice(index, 1);
+      }
+    },
     applyFilters() {
-      this.$emit('apply-filters', this.filters);
+      // Emit the current filters
+      this.$emit('apply-filters', JSON.parse(JSON.stringify(this.filters)));
       this.closePopup();
     },
-    clearFilters() {
+     clearFilters() {
       this.filters = {
         sets: [],
         rarities: [],
@@ -105,6 +289,8 @@ export default {
         power: { operator: "=", value: null },
         toughness: { operator: "=", value: null }
       };
+      this.setSearchQuery = '';
+      this.filteredSets = this.allSets;
       this.$emit('clear-filters');
     },
     closePopup() {
@@ -115,6 +301,9 @@ export default {
 </script>
 
 <style scoped>
+/* ==================== */
+/* LAYOUT & CONTAINERS  */
+/* ==================== */
 .popup-overlay {
   position: fixed;
   top: 0;
@@ -130,171 +319,354 @@ export default {
 
 .filter-popup {
   background-color: white;
-  border-radius: 8px;
-  width: 400px;
-  max-height: 90vh;
+  border-radius: 12px;
+  width: 500px;
+  max-height: 85vh;
   overflow-y: auto;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
 }
 
 .popup-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
+  padding: 16px 20px;
   border-bottom: 1px solid #eee;
+  background-color: #f8f9fa;
+  border-radius: 12px 12px 0 0;
 }
 
+.popup-content {
+  padding: 20px;
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.popup-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-top: 1px solid #eee;
+  background-color: #f8f9fa;
+  border-radius: 0 0 12px 12px;
+}
+
+.filter-section {
+  margin-bottom: 24px;
+}
+
+.pt-filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* ============= */
+/* TYPOGRAPHY    */
+/* ============= */
 .popup-header h3 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.3rem;
+  color: #333;
+  font-weight: 600;
 }
 
+.filter-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+  color: #444;
+  font-weight: 500;
+}
+
+/* ============= */
+/* FORM ELEMENTS */
+/* ============= */
+.search-input,
+.subtype-input,
+.mana-input,
+.value-input,
+.operator-select {
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+}
+
+.search-input,
+.subtype-input {
+  width: 100%;
+}
+
+.mana-input {
+  width: 60px;
+}
+
+.value-input {
+  width: 70px;
+}
+
+.operator-select {
+  background-color: #f8f9fa;
+}
+
+.set-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.set-list {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.set-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.set-item:hover {
+  background-color: #f5f5f5;
+}
+
+.set-checkbox {
+  margin-right: 12px;
+}
+
+.set-name {
+  flex-grow: 1;
+  font-size: 0.95rem;
+}
+
+.set-code {
+  background-color: #e9ecef;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: #495057;
+  margin-left: 10px;
+}
+
+.value-filter {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.mana-cost-filters {
+  display: flex;
+  gap: 15px;
+}
+
+.mana-cost-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ============= */
+/* BUTTONS       */
+/* ============= */
+/* Base Button Styles */
+.btn {
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: 2px solid;
+}
+
+/* Type/Supertype Buttons with Thin Blue Border */
+.type-btn,
+.supertype-btn {
+  border: 1px solid #a0c4e0; /* Light blue border */
+  color: #203c54;
+  background-color: white;
+  position: relative;
+}
+
+.type-btn:hover,
+.supertype-btn:hover {
+  background-color: #f0f7ff;
+  box-shadow: 0 0 0 1px #4682B4, 0 2px 5px rgba(70, 130, 180, 0.2);
+}
+
+.type-btn.selected,
+.supertype-btn.selected {
+  border: 1px solid #4682B4; /* Darker border when selected */
+  background-color: #4682B4;
+  color: white;
+  box-shadow: none; /* Remove outer border when selected */
+}
+
+/* Rarity Buttons */
+.rarity-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  border-radius: 50%;
+}
+
+.rarity-btn.common {
+  border-color: #b5b5b5;
+  color: #b5b5b5;
+}
+.rarity-btn.common.selected {
+  background-color: #b5b5b5;
+  color: white;
+}
+
+.rarity-btn.uncommon {
+  border-color: #c0c0c0;
+  color: #c0c0c0;
+}
+.rarity-btn.uncommon.selected {
+  background-color: #c0c0c0;
+  color: white;
+}
+
+.rarity-btn.rare {
+  border-color: #e6c200;
+  color: #e6c200;
+}
+.rarity-btn.rare.selected {
+  background-color: #e6c200;
+  color: white;
+}
+
+.rarity-btn.mythic {
+  border-color: #e67e00;
+  color: #e67e00;
+}
+.rarity-btn.mythic.selected {
+  background-color: #e67e00;
+  color: white;
+}
+
+.rarity-btn.special {
+  border-color: #a335ee;
+  color: #a335ee;
+}
+.rarity-btn.special.selected {
+  background-color: #a335ee;
+  color: white;
+}
+
+.rarity-btn.bonus {
+  border-color: #ff5555;
+  color: #ff5555;
+}
+.rarity-btn.bonus.selected {
+  background-color: #ff5555;
+  color: white;
+}
+
+/* Action Buttons */
+.clear-btn,
+.apply-btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+}
+
+.clear-btn {
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  color: #dc3545;
+}
+
+.clear-btn:hover {
+  background-color: #f1f1f1;
+}
+
+.apply-btn {
+  background-color: #28a745;
+  border: 1px solid #28a745;
+  color: white;
+}
+
+.apply-btn:hover {
+  background-color: #218838;
+}
+
+/* Button Groups */
+.type-buttons,
+.supertype-buttons,
+.rarity-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+/* Selected States */
+.type-btn.selected,
+.supertype-btn.selected,
+.rarity-btn.selected {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* ============= */
+/* UTILITIES     */
+/* ============= */
 .close-btn {
   background: none;
   border: none;
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   cursor: pointer;
   color: #666;
-  padding: 0 8px;
+  padding: 0 12px;
+  line-height: 1;
 }
 
 .close-btn:hover {
   color: #333;
 }
 
-.popup-content {
-  padding: 16px;
-}
-
-.filter-section {
-  margin-bottom: 20px;
-}
-
-.filter-section h4 {
-  margin: 0 0 8px 0;
-  font-size: 0.95rem;
-  color: #444;
-}
-
-.set-selector {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.set-selector input {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-.set-list {
-  max-height: 150px;
-  overflow-y: auto;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 8px;
-}
-
-.set-list label {
-  display: block;
-  margin-bottom: 6px;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-.rarity-buttons {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.rarity-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 2px solid #ddd;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.rarity-btn.selected {
-  border-color: #333;
-  transform: scale(1.1);
-}
-
-.multiselect {
-  width: 100%;
-  height: 100px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 8px;
-}
-
-.subtype-input {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-.value-filter {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.value-filter select {
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-.value-filter input {
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  width: 60px;
-}
-
-.popup-footer {
-  display: flex;
-  justify-content: space-between;
-  padding: 16px;
-  border-top: 1px solid #eee;
-}
-
-.clear-btn, .apply-btn {
-  padding: 10px 20px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: background-color 0.2s;
-}
-
-.clear-btn {
-  background-color: #f5f5f5;
-  border: 1px solid #ddd;
-  color: #333;
-}
-
-.clear-btn:hover {
-  background-color: #eee;
-}
-
-.apply-btn {
-  background-color: #4CAF50;
-  border: 1px solid #45a049;
-  color: white;
-}
-
-.apply-btn:hover {
-  background-color: #45a049;
+/* ============= */
+/* RESPONSIVE    */
+/* ============= */
+@media (max-width: 600px) {
+  .filter-popup {
+    width: 90vw;
+    max-height: 80vh;
+  }
+  
+  .pt-filters {
+    grid-template-columns: 1fr;
+  }
+  
+  .type-btn,
+  .supertype-btn {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+  }
+  
+  .rarity-btn {
+    width: 36px;
+    height: 36px;
+  }
 }
 </style>
