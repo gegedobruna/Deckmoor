@@ -108,12 +108,9 @@ export default {
         rarities: [],
         types: [],
         supertypes: [],
+        colors: [],
         subtype: "",
-        manaCost: {
-          min: 0,
-          max: 20
-        },
-        manaValue: { operator: "=", value: null },
+        manaCost: { min: 0, max: 20 },
         power: { operator: "=", value: null },
         toughness: { operator: "=", value: null }
       },
@@ -152,6 +149,7 @@ export default {
     const params = { 
       page: newPage,
       query: this.query.trim(),
+      colors: this.activeFilters.colors.join(','),
       mana_min: this.activeFilters.manaCost?.min || 0,
       mana_max: this.activeFilters.manaCost?.max || 20,
     };
@@ -181,12 +179,6 @@ export default {
       // Subtype filter
       if (this.activeFilters.subtype) {
         params.subtype = this.activeFilters.subtype;
-      }
-      
-      // Mana value filter
-      if (this.activeFilters.manaValue.value !== null) {
-        params.mana_value = this.activeFilters.manaValue.value;
-        params.mana_operator = this.activeFilters.manaValue.operator;
       }
       
       // Power filter
@@ -236,8 +228,9 @@ export default {
         rarities: [],
         types: [],
         supertypes: [],
+        colors: [],
         subtype: "",
-        manaValue: { operator: "=", value: null },
+        manaCost: { min: 0, max: 20 },
         power: { operator: "=", value: null },
         toughness: { operator: "=", value: null }
       };

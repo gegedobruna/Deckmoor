@@ -17,25 +17,31 @@
     
     <div v-else class="active-deck">
       <div class="deck-header">
-        <div class="deck-header-left">
+        <div class="deck-header-top">
           <button class="back-btn" @click="backToDecks">
-            <span class="back-icon">←</span> Back
+            <span class="back-icon">←</span> Back to Decks
           </button>
-          <h2 class="deck-title">{{ activeDeck.name }}</h2>
-          <div class="deck-meta">
-            <span class="deck-colors" v-html="formatColors(activeDeck.colors)"></span>
-            <span :class="['card-count', {'over-limit': totalCards > 100}]">
-              {{ totalCards }}/100
-            </span>
-          </div>
         </div>
-        <div class="deck-header-right">
-          <button class="stats-btn" @click="showDeckStats">
-            <span class="stats-icon">📊</span> Stats
-          </button>
-          <button class="delete-deck-btn" @click="promptDeleteDeck(activeDeck)">
-            🗑️
-          </button>
+        
+        <div class="deck-title-section">
+          <div class="title-wrapper">
+            <h2 class="deck-title">{{ activeDeck.name }}</h2>
+            <div class="deck-meta">
+              <div class="deck-colors" v-html="formatColors(activeDeck.colors)"></div>
+              <span :class="['card-count', {'over-limit': totalCards > 100}]">
+                {{ totalCards }}/100
+              </span>
+            </div>
+          </div>
+          
+          <div class="deck-header-actions">
+            <button class="stats-btn" @click="showDeckStats">
+              <span class="stats-icon">📊</span> Stats
+            </button>
+            <button class="delete-deck-btn" @click="promptDeleteDeck(activeDeck)">
+              🗑️ Delete
+            </button>
+          </div>
         </div>
       </div>
       
@@ -479,25 +485,25 @@ export default {
   right: 0;
   height: 100vh;
   background-color: white;
-  border-left: 1px solid var(--border-color);
+  border-left: 1px solid #e2e8f0;
   overflow-y: auto;
   padding: 16px;
-  box-shadow: var(--sidebar-shadow);
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.05);
   z-index: 100;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color: var(--text-color);
+  color: #2d3748;
 }
 
-.sidebar-title, .deck-title, .section-title, .modal-title, .modal-subtitle {
+.sidebar-title, .section-title, .modal-title, .modal-subtitle {
   font-weight: 600;
-  color: var(--text-color);
+  color: #2d3748;
   letter-spacing: -0.5px;
 }
 
-.sidebar-title, .deck-title {
+.sidebar-title {
   margin-top: 0;
   padding-bottom: 14px;
-  border-bottom: 2px solid var(--primary-color);
+  border-bottom: 2px solid #4299e1;
   font-size: 1.5rem;
 }
 
@@ -505,10 +511,10 @@ export default {
   font-size: 1.2rem;
   margin-bottom: 12px;
   padding-bottom: 6px;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid #e2e8f0;
 }
 
-.deck-list h2, .active-deck h2 {
+.deck-list h2 {
   margin-top: 0;
 }
 
@@ -517,64 +523,64 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 12px;
-  border-radius: var(--border-radius);
+  border-radius: 8px;
   margin-bottom: 8px;
-  border: 1px solid var(--border-color);
+  border: 1px solid #e2e8f0;
   cursor: pointer;
-  transition: all var(--transition-speed) ease;
+  transition: all 0.2s ease;
 }
 
 .deck-name {
   font-weight: 500;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
 }
 
 .deck-item:hover {
-  background-color: var(--background-color);
-  border-color: var(--primary-color);
+  background-color: #f7fafc;
+  border-color: #4299e1;
   transform: translateY(-1px);
-  box-shadow: var(--card-shadow);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .delete-deck-btn {
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--error-color);
+  color: #e53e3e;
   font-size: 1.1rem;
   padding: 4px 8px;
   margin-left: 8px;
   transition: all 0.2s ease;
-  z-index: 2; /* Ensure it's above the clickable deck item */
+  z-index: 2;
 }
 
 .delete-deck-btn:hover {
   transform: scale(1.2);
-  color: #d11a2a;
-}
-
-.deck-header-right {
-  display: flex;
-  gap: 8px;
+  color: #c53030;
 }
 
 .create-deck-btn {
   width: 100%;
   padding: 12px;
-  background-color: #4682B4;
+  background-color: #4299e1;
   color: white;
   border: none;
-  border-radius: var(--border-radius);
+  border-radius: 8px;
   margin-top: 16px;
   cursor: pointer;
   font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color var(--transition-speed) ease;
+  transition: background-color 0.2s ease;
 }
 
 .create-deck-btn:hover {
-  background-color: var(--primary-hover);
+  background-color: #3182ce;
 }
 
 .btn-icon {
@@ -583,31 +589,88 @@ export default {
 }
 
 .deck-header {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+}
+
+.deck-header-top {
+  margin-bottom: 12px;
+}
+
+.deck-title-section {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
-.deck-header-left {
+.title-wrapper {
   flex: 1;
+  min-width: 0;
+}
+
+.deck-title {
+  margin: 0 0 8px 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #2d3748;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #4299e1;
+}
+
+.deck-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.deck-colors {
+  display: flex;
+  gap: 4px;
+}
+
+.card-count {
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  color: #4a5568;
+  font-size: 0.9rem;
+}
+
+.card-count.over-limit {
+  color: white;
+  background-color: #e53e3e;
+  border-color: #e53e3e;
+}
+
+.deck-header-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .back-btn {
   padding: 8px 12px;
-  background-color: var(--accent-color);
-  color: white;
-  border: none;
-  border-radius: var(--border-radius);
+  background-color: #f7fafc;
+  color: #4a5568;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
   cursor: pointer;
-  margin-bottom: 12px;
   display: flex;
   align-items: center;
-  transition: all var(--transition-speed) ease;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
 }
 
 .back-btn:hover {
-  background-color: var(--accent-hover);
+  background-color: #edf2f7;
+  border-color: #cbd5e0;
 }
 
 .back-icon {
@@ -616,43 +679,43 @@ export default {
 
 .stats-btn {
   padding: 8px 12px;
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
-  border-radius: var(--border-radius);
+  background-color: #f7fafc;
+  color: #4a5568;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
   cursor: pointer;
-  font-weight: 500;
-  transition: background-color var(--transition-speed) ease;
   display: flex;
   align-items: center;
-  gap: 6px;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
 }
 
 .stats-btn:hover {
-  background-color: var(--primary-hover);
+  background-color: #ebf8ff;
+  border-color: #bee3f8;
+  color: #3182ce;
 }
 
 .stats-icon {
-  font-size: 0.9em;
+  margin-right: 6px;
 }
 
-.deck-meta {
+.delete-deck-btn {
+  padding: 8px 12px;
+  background-color: #fff5f5;
+  color: #e53e3e;
+  border: 1px solid #fed7d7;
+  border-radius: 6px;
+  cursor: pointer;
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 16px;
-  padding: 8px 0;
+  align-items: center;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
 }
 
-.card-count {
-  font-weight: bold;
-  padding: 4px 8px;
-  border-radius: var(--border-radius);
-  color:#393939
-}
-
-.card-count.over-limit {
-  color: white;
-  background-color: var(--error-color);
+.delete-deck-btn:hover {
+  background-color: #fee2e2;
+  border-color: #feb2b2;
 }
 
 .commander-section {
@@ -664,17 +727,17 @@ export default {
   align-items: center;
   gap: 12px;
   padding: 10px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all var(--transition-speed) ease;
-  background-color: var(--background-color);
+  transition: all 0.2s ease;
+  background-color: #f7fafc;
 }
 
 .commander-card:hover {
-  border-color: var(--primary-color);
+  border-color: #4299e1;
   transform: translateY(-2px);
-  box-shadow: var(--card-shadow);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .commander-card img {
@@ -774,8 +837,8 @@ export default {
 
 .add-btn {
   background: none;
-  border: 1px solid var(--border-color);
-  color: var(--secondary-color);
+  border: 1px solid #e2e8f0;
+  color: #718096;
   font-size: 1.125rem;
   cursor: pointer;
   width: 10px;
@@ -783,22 +846,22 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-speed) ease;
+  transition: all 0.2s ease;
   margin-left: 8px;
-  background-color: var(--background-color);
+  background-color: #f7fafc;
 }
 
 .add-btn:hover {
   color: white;
-  background-color: #4682B4;
-  border-color: #4682B4;
+  background-color: #4299e1;
+  border-color: #4299e1;
   transform: scale(1.1);
 }
 
 .remove-btn {
   background: none;
-  border: 1px solid var(--border-color);
-  color: var(--secondary-color);
+  border: 1px solid #e2e8f0;
+  color: #718096;
   font-size: 1rem;
   cursor: pointer;
   width: 10px;
@@ -806,14 +869,14 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-speed) ease;
-  background-color: var(--background-color);
+  transition: all 0.2s ease;
+  background-color: #f7fafc;
 }
 
 .remove-btn:hover {
   color: white;
-  background-color: var(--error-color);
-  border-color: var(--error-color);
+  background-color: #e53e3e;
+  border-color: #e53e3e;
   transform: scale(1.1);
 }
 
@@ -827,27 +890,27 @@ export default {
   bottom: 16px;
   background-color: white;
   padding-top: 10px;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid #e2e8f0;
 }
 
 .save-deck-btn {
   width: 100%;
   padding: 12px;
-  background-color: #4682B4;
+  background-color: #4299e1;
   color: white;
   border: none;
-  border-radius: var(--border-radius);
+  border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  transition: background-color var(--transition-speed) ease;
+  transition: background-color 0.2s ease;
 }
 
 .save-deck-btn:hover:not(:disabled) {
-  background-color: var(--primary-hover);
+  background-color: #3182ce;
 }
 
 .save-deck-btn:disabled {
-  background-color: var(--secondary-color);
+  background-color: #a0aec0;
   cursor: not-allowed;
   opacity: 0.7;
 }
@@ -881,8 +944,8 @@ export default {
   margin-top: 0;
   margin-bottom: 20px;
   font-size: 1.5rem;
-  color: var(--primary-color);
-  border-bottom: 2px solid var(--primary-color);
+  color: #4299e1;
+  border-bottom: 2px solid #4299e1;
   padding-bottom: 10px;
 }
 
@@ -903,14 +966,14 @@ export default {
 .search-box input {
   width: 100%;
   padding: 12px;
-  border: 2px solid var(--border-color);
-  border-radius: var(--border-radius);
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
   font-size: 1rem;
-  transition: border-color var(--transition-speed) ease;
+  transition: border-color 0.2s ease;
 }
 
 .search-box input:focus {
-  border-color: var(--primary-color);
+  border-color: #4299e1;
   outline: none;
 }
 
@@ -928,16 +991,16 @@ export default {
   text-align: center;
   cursor: pointer;
   padding: 10px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-  transition: all var(--transition-speed) ease;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  transition: all 0.2s ease;
 }
 
 .commander-option:hover {
-  border-color: var(--primary-color);
-  background-color: var(--background-color);
+  border-color: #4299e1;
+  background-color: #f7fafc;
   transform: translateY(-2px);
-  box-shadow: var(--card-shadow);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .commander-option img, .land-preview img, .selected-commander img {
@@ -959,9 +1022,9 @@ export default {
 .selected-commander, .selected-land {
   margin-top: 16px;
   padding: 16px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-  background-color: var(--background-color);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background-color: #f7fafc;
 }
 
 .commander-preview, .land-preview {
@@ -994,13 +1057,13 @@ export default {
 .form-group input {
   width: 100%;
   padding: 10px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
   font-size: 1rem;
 }
 
 .form-group input:focus {
-  border-color: var(--primary-color);
+  border-color: #4299e1;
   outline: none;
 }
 
@@ -1013,31 +1076,31 @@ export default {
 
 .cancel-btn, .confirm-btn, .search-commander-btn {
   padding: 10px 16px;
-  border-radius: var(--border-radius);
+  border-radius: 8px;
   font-weight: 500;
   cursor: pointer;
-  transition: all var(--transition-speed) ease;
+  transition: all 0.2s ease;
 }
 
 .cancel-btn {
-  background-color: var(--background-color);
-  border: 1px solid var(--border-color);
-  color: var(--text-color);
+  background-color: #f7fafc;
+  border: 1px solid #e2e8f0;
+  color: #4a5568;
 }
 
 .cancel-btn:hover {
-  border-color: var(--secondary-color);
+  border-color: #a0aec0;
   background-color: #edf2f7;
 }
 
 .confirm-btn {
-  background-color: #4682B4;
-  border: 1px solid var(--primary-color);
+  background-color: #4299e1;
+  border: 1px solid #4299e1;
   color: white;
 }
 
 .confirm-btn:hover:not(:disabled) {
-  background-color: var(--primary-hover);
+  background-color: #3182ce;
 }
 
 .confirm-btn:disabled {
@@ -1046,27 +1109,27 @@ export default {
 }
 
 .delete-btn {
-  background-color: var(--error-color) !important;
-  border-color: var(--error-color) !important;
+  background-color: #e53e3e !important;
+  border-color: #e53e3e !important;
 }
 
 .delete-btn:hover {
-  background-color: #d11a2a !important;
-  border-color: #d11a2a !important;
+  background-color: #c53030 !important;
+  border-color: #c53030 !important;
 }
 
 .search-commander-btn {
-  background-color: var(--background-color);
-  border: 1px solid var(--border-color);
-  color: var(--text-color);
+  background-color: #f7fafc;
+  border: 1px solid #e2e8f0;
+  color: #4a5568;
   width: 100%;
   text-align: center;
   font-weight: 500;
 }
 
 .search-commander-btn:hover {
-  border-color: var(--primary-color);
-  color: var(--primary-color);
+  border-color: #4299e1;
+  color: #4299e1;
 }
 
 @keyframes cardAdded {
@@ -1091,7 +1154,7 @@ export default {
   }
   50% {
     transform: scale(1.2);
-    color: var(--success-color);
+    color: #38a169;
   }
   100% {
     transform: scale(1);
@@ -1173,11 +1236,11 @@ export default {
 }
 
 .deck-sidebar::-webkit-scrollbar-track {
-  background: var(--background-color);
+  background: #f7fafc;
 }
 
 .deck-sidebar::-webkit-scrollbar-thumb {
-  background-color: var(--secondary-color);
+  background-color: #a0aec0;
   border-radius: 20px;
 }
 
@@ -1186,11 +1249,11 @@ export default {
 }
 
 .commander-results::-webkit-scrollbar-track {
-  background: var(--background-color);
+  background: #f7fafc;
 }
 
 .commander-results::-webkit-scrollbar-thumb {
-  background-color: var(--secondary-color);
+  background-color: #a0aec0;
   border-radius: 20px;
 }
 

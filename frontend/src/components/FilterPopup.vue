@@ -32,6 +32,24 @@
             </div>
           </div>
         </div>
+
+         <!-- Color Filter -->
+         <div class="filter-section">
+          <h4>Color</h4>
+          <div class="color-buttons">
+            <button
+              v-for="color in colorOptions"
+              :key="color.code"
+              :class="['color-btn', { selected: filters.colors.includes(color.code) }]"
+              :style="{ backgroundColor: color.background }"
+              @click="toggleColor(color.code)"
+              :title="color.name"
+            >
+
+              <i :class="color.icon"></i>
+            </button>
+          </div>
+        </div>
         
         <!-- Rarity Filter -->
         <div class="filter-section">
@@ -40,12 +58,11 @@
             <button 
               v-for="rarity in rarityOptions" 
               :key="rarity.code"
-              :class="['rarity-btn', { selected: filters.rarities.includes(rarity.code) }]"
-              :style="{ backgroundColor: rarity.color }"
+              :class="['rarity-btn', rarity.code, { selected: filters.rarities.includes(rarity.code) }]"
               @click="toggleRarity(rarity.code)"
               :title="rarity.name"
             >
-              {{ rarity.symbol }}
+              <img :src="rarity.image" :alt="rarity.name" class="rarity-icon">
             </button>
           </div>
         </div>
@@ -79,8 +96,8 @@
             </button>
           </div>
         </div>
-        
-        <!-- Subtype Filter -->
+
+        <!-- Subtype Filter
         <div class="filter-section">
           <h4>Subtype</h4>
           <input 
@@ -89,7 +106,7 @@
             placeholder="e.g. Elf, Wizard, Dragon"
             class="subtype-input"
           />
-        </div>
+        </div> -->
         
         <!-- Mana Value Filter -->
         <div class="filter-section">
@@ -189,8 +206,9 @@ export default {
         rarities: [],
         types: [],
         supertypes: [],
-        subtype: "",
-        manaValue: { operator: "=", value: null },
+        colors: [],
+        // subtype: "",
+        manaCost: { min: 0, max: 20 },
         power: { operator: "=", value: null },
         toughness: { operator: "=", value: null }
       })
@@ -202,15 +220,13 @@ export default {
       setSearchQuery: '',
       filteredSets: this.allSets,
       manaCost: this.currentFilters.manaCost || { min: 0, max: 20 },
-      
-      // Add these data properties:
       rarityOptions: [
-        { code: 'common', name: 'Common', symbol: 'C', color: '#b5b5b5' },
-        { code: 'uncommon', name: 'Uncommon', symbol: 'U', color: '#c0c0c0' },
-        { code: 'rare', name: 'Rare', symbol: 'R', color: '#e6c200' },
-        { code: 'mythic', name: 'Mythic Rare', symbol: 'M', color: '#e67e00' },
-        { code: 'special', name: 'Special', symbol: 'S', color: '#a335ee' },
-        { code: 'bonus', name: 'Bonus', symbol: 'B', color: '#ff5555' }
+        { code: 'common', name: 'Common', image: require('@/assets/icons/common.png') },
+        { code: 'uncommon', name: 'Uncommon', image: require('@/assets/icons/uncommon.png') },
+        { code: 'rare', name: 'Rare', image: require('@/assets/icons/rare.png') },
+        { code: 'mythic', name: 'Mythic Rare', image: require('@/assets/icons/mythic.png') },
+        { code: 'special', name: 'Timeshifted', image: require('@/assets/icons/timeshifted.png') },
+        { code: 'bonus', name: 'Masterpiece', image: require('@/assets/icons/masterpiece.png') }
       ],
       typeOptions: [
         'Artifact', 'Creature', 'Enchantment', 
@@ -219,6 +235,14 @@ export default {
       ],
       supertypeOptions: [
         'Basic', 'Legendary', 'Snow', 'World'
+      ],
+      colorOptions: [
+        { code: 'W', name: 'White', background: '#f8f5e4', icon: 'ms ms-w ms-cost' },
+        { code: 'U', name: 'Blue', background: '#c0d8e8', icon: 'ms ms-u ms-cost' },
+        { code: 'B', name: 'Black', background: '#cbc2bf', icon: 'ms ms-b ms-cost' },
+        { code: 'R', name: 'Red', background: '#e8b8a0', icon: 'ms ms-r ms-cost' },
+        { code: 'G', name: 'Green', background: '#c8d6c2', icon: 'ms ms-g ms-cost' },
+        { code: 'C', name: 'Colorless', background: '#e8e8e8', icon: 'ms ms-c ms-cost' }
       ]
     };
   },
@@ -257,6 +281,14 @@ export default {
         this.filters.rarities.splice(index, 1);
       }
     },
+    toggleColor(color) {
+      const index = this.filters.colors.indexOf(color);
+      if (index === -1) {
+        this.filters.colors.push(color);
+      } else {
+        this.filters.colors.splice(index, 1);
+      }
+    },
     toggleType(type) {
       const index = this.filters.types.indexOf(type);
       if (index === -1) {
@@ -284,8 +316,9 @@ export default {
         rarities: [],
         types: [],
         supertypes: [],
-        subtype: "",
-        manaValue: { operator: "=", value: null },
+        colors: [],
+        // subtype: "",
+        manaCost: { min: 0, max: 20 },
         power: { operator: "=", value: null },
         toughness: { operator: "=", value: null }
       };
@@ -518,8 +551,17 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
   border-radius: 50%;
+  padding: 0;
+  border: 2px solid;
+  background-color: white;
+  transition: all 0.2s;
+}
+
+.rarity-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
 }
 
 .rarity-btn.common {
@@ -574,6 +616,58 @@ export default {
 .rarity-btn.bonus.selected {
   background-color: #ff5555;
   color: white;
+}
+
+/* Color Filter Styles */
+.color-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.color-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid transparent;
+  padding: 0;
+}
+
+.color-btn.selected {
+  border-color: rgba(0, 0, 0, 0.5);
+  border-width: 2px;
+  transform: scale(1.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.color-btn i {
+  font-size: 1.2rem;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+/* Add specific border colors for each color to match their backgrounds */
+.color-btn[style*="background-color: #f8f5e4"].selected { /* White */
+  border-color: #d1c9a3;
+}
+.color-btn[style*="background-color: #c0d8e8"].selected { /* Blue */
+  border-color: #7fa8c4;
+}
+.color-btn[style*="background-color: #cbc2bf"].selected { /* Black */
+  border-color: #8a817d;
+}
+.color-btn[style*="background-color: #e8b8a0"].selected { /* Red */
+  border-color: #d1947a;
+}
+.color-btn[style*="background-color: #c8d6c2"].selected { /* Green */
+  border-color: #9cb394;
+}
+.color-btn[style*="background-color: #e8e8e8"].selected { /* Colorless */
+  border-color: #c0c0c0;
 }
 
 /* Action Buttons */
