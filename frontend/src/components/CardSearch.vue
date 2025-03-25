@@ -19,58 +19,58 @@
       />
     </div>
 
-    <!-- Filter Toggle Button -->
-    <button @click="showFilters = !showFilters" class="filter-toggle">
-      {{ showFilters ? 'Hide Filters' : 'Show Filters' }}
+    <!-- Filter Button - Changed to open popup -->
+    <button @click="showFilterPopup = true" class="filter-toggle">
+      Show Filters
     </button>
 
-    <!-- Main Content Area -->
-    <div class="main-content">
-      <!-- Filters Panel -->
-      <FilterPanel 
-        v-if="showFilters" 
-        :allSets="allSets"
-        @filters-changed="applyFilters"
+    <!-- Filter Popup -->
+    <FilterPopup 
+      v-if="showFilterPopup"
+      :isOpen="showFilterPopup"
+      :allSets="allSets"
+      @close-popup="showFilterPopup = false"
+      @apply-filters="applyFilters"
+      @clear-filters="clearFilters"
+    />
+
+    <!-- Results Area -->
+    <div class="results-area">
+      <!-- Card Grid -->
+      <CardGrid 
+        v-if="cards && cards.length > 0" 
+        :cards="cards" 
+        @select-card="showCardDetails"
+        @add-to-deck="addCardToDeck" 
       />
-
-      <!-- Results Area -->
-      <div class="results-area">
-        <!-- Card Grid -->
-        <CardGrid 
-  v-if="cards && cards.length > 0" 
-  :cards="cards" 
-  @select-card="showCardDetails"
-  @add-to-deck="addCardToDeck" 
-/>
-        <div v-else-if="hasSearched" class="no-results">
-          No cards found matching your criteria
-        </div>
-
-        <!-- Pagination Controls -->
-        <div v-if="(hasMore || page > 1) && cards.length" class="pagination-controls">
-          <button @click="fetchCards(page - 1)" :disabled="page === 1">Previous</button>
-          <span>Page {{ page }}</span>
-          <button @click="fetchCards(page + 1)" :disabled="!hasMore">Next</button>
-        </div>
+      <div v-else-if="hasSearched" class="no-results">
+        No cards found matching your criteria
       </div>
 
-      <!-- Deck Sidebar - for deck management -->
-      <DeckSidebar 
-        ref="deckSidebar"
-        :selectedCard="selectedCard"
-        @reset-selected-card="selectedCard = null"
-        @view-card="showCardDetails"
-        @deck-saved="onDeckSaved"
-      />
+      <!-- Pagination Controls -->
+      <div v-if="(hasMore || page > 1) && cards.length" class="pagination-controls">
+        <button @click="fetchCards(page - 1)" :disabled="page === 1">Previous</button>
+        <span>Page {{ page }}</span>
+        <button @click="fetchCards(page + 1)" :disabled="!hasMore">Next</button>
+      </div>
     </div>
+
+    <!-- Deck Sidebar - for deck management -->
+    <DeckSidebar 
+      ref="deckSidebar"
+      :selectedCard="selectedCard"
+      @reset-selected-card="selectedCard = null"
+      @view-card="showCardDetails"
+      @deck-saved="onDeckSaved"
+    />
 
     <!-- Card Details Pop-Up -->
     <CardDetailsPopup
-    v-if="selectedCard"
-    :card="selectedCard"
-    @close="selectedCard = null"
-    @add-to-deck="addCardToDeck"
-  />
+      v-if="selectedCard"
+      :card="selectedCard"
+      @close="selectedCard = null"
+      @add-to-deck="addCardToDeck"
+    />
   </div>
 </template>
 
@@ -80,7 +80,7 @@ import debounce from "lodash/debounce";
 import CardAutocomplete from "./CardAutocomplete.vue";
 import CardGrid from "./CardGrid.vue";
 import CardDetailsPopup from "./CardDetailsPopup.vue";
-import FilterPanel from "./FilterPanel.vue";
+import FilterPopup from "./FilterPopup.vue"; // Changed from FilterPanel to FilterPopup
 import DeckSidebar from "./DeckSidebar.vue";
 
 export default {
@@ -88,7 +88,7 @@ export default {
     CardAutocomplete, 
     CardGrid, 
     CardDetailsPopup,
-    FilterPanel,
+    FilterPopup, // Changed from FilterPanel to FilterPopup
     DeckSidebar
   },
   data() {
@@ -97,10 +97,10 @@ export default {
       results: [],
       cards: [],   
       selectedCard: null,
-      selectedCardForDeck: null, // track card selected for adding to deck
+      selectedCardForDeck: null,
       page: 1,
       hasMore: false,
-      showFilters: false,
+      showFilterPopup: false, // Changed from showFilters to showFilterPopup
       hasSearched: false,
       allSets: [],
       activeFilters: null
@@ -110,7 +110,6 @@ export default {
     this.fetchSets();
   },
   methods: {
-
     debouncedSearch: debounce(function () {
       if (this.query.trim()) {
         this.fetchAutocomplete(this.query);
@@ -141,40 +140,53 @@ export default {
           page: newPage,
           query: this.query.trim()
         };
-        // Apply filters
+        
+        // Apply filters if they exist
         if (this.activeFilters) {
-          // Mana cost
-          if (this.activeFilters.manaCost.min > 0 || this.activeFilters.manaCost.max < 16) {
-            params.mana_min = this.activeFilters.manaCost.min;
-            params.mana_max = this.activeFilters.manaCost.max;
-          }
-          // Colors
-          if (this.activeFilters.colors.length > 0) {
-            params.colors = this.activeFilters.colors.join(',');
-          }
-          // Types
-          if (this.activeFilters.types.length > 0) {
-            params.types = this.activeFilters.types.join(',');
-          }
-          // Rarities
-          if (this.activeFilters.rarities.length > 0) {
-            params.rarities = this.activeFilters.rarities.join(',');
-          }
-          // Sets
+          // Set filters
           if (this.activeFilters.sets.length > 0) {
             params.sets = this.activeFilters.sets.join(',');
           }
-          // Power
-          if (this.activeFilters.power.value !== 0) {
+          
+          // Rarity filters
+          if (this.activeFilters.rarities.length > 0) {
+            params.rarities = this.activeFilters.rarities.join(',');
+          }
+          
+          // Type filters
+          if (this.activeFilters.types.length > 0) {
+            params.types = this.activeFilters.types.join(',');
+          }
+          
+          // Supertype filters
+          if (this.activeFilters.supertypes.length > 0) {
+            params.supertypes = this.activeFilters.supertypes.join(',');
+          }
+          
+          // Subtype filter
+          if (this.activeFilters.subtype) {
+            params.subtype = this.activeFilters.subtype;
+          }
+          
+          // Mana value filter
+          if (this.activeFilters.manaValue.value !== null) {
+            params.mana_value = this.activeFilters.manaValue.value;
+            params.mana_operator = this.activeFilters.manaValue.operator;
+          }
+          
+          // Power filter
+          if (this.activeFilters.power.value !== null) {
             params.power_value = this.activeFilters.power.value;
             params.power_operator = this.activeFilters.power.operator;
           }
-          // Toughness
-          if (this.activeFilters.toughness.value !== 0) {
+          
+          // Toughness filter
+          if (this.activeFilters.toughness.value !== null) {
             params.toughness_value = this.activeFilters.toughness.value;
             params.toughness_operator = this.activeFilters.toughness.operator;
           }
         }
+        
         const response = await axios.get("http://127.0.0.1:8000/search", { params });
         this.cards = response.data.cards || [];
         this.hasMore = response.data.has_more || false;
@@ -187,17 +199,18 @@ export default {
     },
     
     showCardDetails(card) {
-  this.selectedCard = card; // Just show details, don't add to deck
-  this.results = [];
-},
-
-    closeCardDetails() {
-      // IMPORTANT: Removed the line that assigned selectedCardForDeck to selectedCard
-      this.selectedCard = null;
+      this.selectedCard = card;
+      this.results = [];
     },
-    
+
     applyFilters(filters) {
       this.activeFilters = filters;
+      this.page = 1;
+      this.fetchCards(1);
+    },
+    
+    clearFilters() {
+      this.activeFilters = null;
       this.page = 1;
       this.fetchCards(1);
     },
@@ -211,20 +224,25 @@ export default {
         this.allSets = [];
       }
     },
-  addCardToDeck(card) {
-  console.log("Adding card to deck:", card.name); // Debug
-  if (this.$refs.deckSidebar?.addCardToDeck) {
-    this.$refs.deckSidebar.addCardToDeck(card);
-  } else {
-    console.error("DeckSidebar not available");
+    
+    addCardToDeck(card) {
+      console.log("Adding card to deck:", card.name);
+      if (this.$refs.deckSidebar?.addCardToDeck) {
+        this.$refs.deckSidebar.addCardToDeck(card);
+      } else {
+        console.error("DeckSidebar not available");
+      }
+    },
+    
+    onDeckSaved() {
+      // Handle deck saved event if needed
+    }
   }
-},
-
-  },
 };
 </script>
 
 <style scoped>
+/* Your existing styles remain the same */
 .search-container {
   position: relative; 
   width: 100%;
@@ -254,13 +272,9 @@ export default {
   font-size: 14px;
 }
 
-.main-content {
-  display: flex;
-  gap: 20px;
-}
-
 .results-area {
   flex: 1;
+  padding: 0 20px;
 }
 
 .pagination-controls {

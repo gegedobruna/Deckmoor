@@ -219,7 +219,7 @@ export default {
   max-width: 90%;
   height: 570px;
   max-height: 90%;
-  padding: 30px;
+  padding: 30px 30px 20px 30px;
   position: relative;
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
 }
@@ -234,32 +234,39 @@ export default {
 }
 
 .card-image-container {
-  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  align-items: center;
   width: 350px;
   min-width: 350px;
+  height: 100%; /* Take full height of parent */
+}
+
+.card-image-wrapper {
+  flex: 1;
+  min-height: 0; /* Crucial for flex children */
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
 }
 
 .card-image {
-  width: 100%;
-  perspective: 1000px;
-  position: relative;
-  margin-bottom: 15px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative; /* Needed for flip container */
 }
 
 .add-to-deck-btn {
-  padding: 10px 15px;
+  padding: 12px;
   background-color: var(--primary-color);
   color: white;
   border: none;
   border-radius: 5px;
   font-size: 16px;
   cursor: pointer;
-  transition: background-color 0.2s;
-  width: 80%;
-  text-align: center;
+  width: 100%;
+  flex-shrink: 0; /* Prevent button from shrinking */
+  margin-top: 10px; /* Push to bottom */
 }
 
 .add-to-deck-btn:hover {
@@ -309,6 +316,9 @@ export default {
   font-size: 15px;
   line-height: 1.5;
   white-space: pre-wrap;
+}
+.card-flip {
+  position: relative !important;
 }
 
 .close-button {

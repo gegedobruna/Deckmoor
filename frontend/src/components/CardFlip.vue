@@ -49,35 +49,36 @@ export default {
 
 <style scoped>
 .card-flip-container {
-    perspective: 1000px;
-    width: 150px;
-    height: 210px;
+  width: 100%;
+  height: 100%;
+  perspective: 1000px;
 }
 .card-flip {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    transition: transform 0.6s;
-    transform-style: preserve-3d;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.6s;
 }
 .card-flip.flipped {
     transform: rotateY(180deg);
 }
 .card-face {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    backface-visibility: hidden;
-    border-radius: 5px;
-    overflow: hidden;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  top: 0;
+  left: 0;
 }
 .card-face img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 5px;
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* Show full card */
+  display: block; /* Remove image spacing */
 }
+
 .back {
-    transform: rotateY(180deg);
+  transform: rotateY(180deg);
 }
 </style>
