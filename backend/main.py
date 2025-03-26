@@ -82,7 +82,7 @@ async def search_cards(
 
         # Add color filter
         if color_list:
-            color_query = "c:" + "".join(color_list)
+            color_query = "c=" + "".join(sorted(color_list))
             scryfall_query_parts.append(color_query)
 
         # Add type filter (AND logic)
