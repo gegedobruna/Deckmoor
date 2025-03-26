@@ -23,7 +23,7 @@
           <div class="info-grid">
             <div class="info-row">
               <span class="info-label">Mana Cost:</span>
-              <span class="info-value mana-symbols" v-html="formatManaCost(card.mana_cost)"></span>
+              <span class="info-value mana-symbols" v-html="formatManaCost(displayManaCost)"></span>
             </div>
             
             <div class="info-row">
@@ -49,7 +49,7 @@
           
           <div class="oracle-text">
             <h3>Oracle Text</h3>
-            <p v-html="formatManaCost(card.oracle_text || 'N/A')"></p>
+            <p v-html="formatManaCost(displayOracleText)"></p>
           </div>
         </div>
       </div>
@@ -76,7 +76,25 @@ export default {
     canBeFlipped() {
       // Card can be flipped if it has card_faces with a second face that has an image
       return Boolean(this.card?.card_faces?.[1]?.image_uris?.normal);
+    },
+    displayManaCost() {
+    if (this.card.card_faces?.length) {
+      const [face1, face2] = this.card.card_faces;
+      const cost1 = face1.mana_cost || '';
+      const cost2 = face2?.mana_cost || '';
+      return cost1 && cost2 ? `${cost1} // ${cost2}` : cost1 || cost2 || 'N/A';
     }
+    return this.card.mana_cost || 'N/A';
+  },
+  displayOracleText() {
+    if (this.card.card_faces?.length) {
+      return this.card.card_faces
+        .map(face => face.oracle_text || '')
+        .filter(Boolean)
+        .join('<hr style="margin: 10px 0;">'); // simple visual divider
+    }
+    return this.card.oracle_text || 'N/A';
+  }
   },
   methods: {
     close() {
@@ -99,24 +117,21 @@ export default {
         if (cssClass === 't' || cssClass === 'tap') {
           cssClass = 't';
         }
-        
         // Handle untap symbol
-        if (cssClass === 'q' || cssClass === 'untap') {
+        else if (cssClass === 'q' || cssClass === 'untap') {
           cssClass = 'q';
         }
-        
         // Handle hybrid symbols
-        if (cssClass.includes('/')) {
+        else if (cssClass.includes('/')) {
           cssClass = cssClass.replace('/', '');
         }
-        
-        // Handle numbers
-        if (/^\d+$/.test(cssClass)) {
-          cssClass = cssClass.padStart(2, '0').slice(-2); // Ensure two digits for numbers
+        // Handle numbers - don't modify them
+        else if (/^\d+$/.test(cssClass)) {
+          cssClass = symbol; // Use the original symbol without padding
         }
         
         return `<span class="mana medium s${cssClass}"></span>`;
-      });
+      }); 
     },
     formatColorIdentity(colors) {
       if (!colors || colors.length === 0) return "Colorless";
