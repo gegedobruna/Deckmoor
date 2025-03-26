@@ -126,7 +126,7 @@ async def search_cards(
             scryfall_query = "type:creature"
 
         # Pagination setup
-        cards_per_page = 15
+        cards_per_page = 16
         scryfall_page = ((page - 1) * cards_per_page) // 175 + 1
 
         # Make API request

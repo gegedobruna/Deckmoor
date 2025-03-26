@@ -2,7 +2,6 @@
   <div class="card-grid">
     <div v-for="card in cards" :key="card.id" class="card-container">
       <div class="card-item">
-        <!-- Clicking image only triggers showing details -->
         <img 
           :src="getCardImageUrl(card)" 
           :alt="card.name" 
@@ -10,8 +9,6 @@
           @click="handleImageClick(card)"
         >
         <div class="card-title">{{ card.name }}</div>
-
-        <!-- Separate button to add card to the deck -->
         <button 
           class="add-to-deck-btn"
           @click.stop="handleAddToDeck(card)"
@@ -21,23 +18,8 @@
         </button>
       </div>
     </div>
-
-    <!-- OUTSIDE the loop -->
-    <CardResult
-      v-for="card in cards"
-      :key="card.id"
-      :card="card"
-      @add-to-deck="addCardToDeck"
-    />
-
-    <CardDetailsPopup
-      v-if="selectedCard"
-      :card="selectedCard"
-      @add-to-deck="addCardToDeck"
-    />
   </div>
 </template>
-
 
 <script>
 export default {
@@ -75,82 +57,123 @@ export default {
 
 <style scoped>
 .card-grid {
-  padding-right: 350px; 
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(195px, 1fr));
   gap: 20px;
+  width: 125%;
+  padding: 20px 0;
+  box-sizing: border-box;
+  margin-right: 40px;
+  overflow: visible !important;
 }
 
 .card-container {
   position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  margin-right: 10px;
+  overflow: visible; /* Make sure the button can escape the container */
+
 }
 
 .card-item {
   position: relative;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  height: 100%;
+  border-radius: 12px;
+  overflow: visible; 
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   background-color: white;
+  margin-right: 10px;
+  isolation: isolate;
+  position: relative;
+  z-index: 1;
 }
-
 .card-item:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
 }
 
 .card-image {
   width: 100%;
-  display: block;
+  height: 100%;
   object-fit: cover;
-  aspect-ratio: 63/88; /* MTG card ratio */
+  object-position: center top;
 }
-
 .card-title {
-  padding: 8px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px;
   font-weight: bold;
-  font-size: 14px;
+  font-size: 16px;
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+  color: white;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
 }
 
-/* Add to Deck Button Styles */
 .add-to-deck-btn {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 57px;
+  right: -15px;
   width: 30px;
   height: 30px;
-  border-radius: 50%;
-  background-color: #4682B4;
+  border-radius: 20%;
+  background-color: #4299e1;
   color: white;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  opacity: 0.8;
-  transition: opacity 0.2s, transform 0.2s;
-  z-index: 10;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s;
+  z-index: 20; 
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 .add-to-deck-btn:hover {
-  opacity: 1;
-  transform: scale(1.1);
+  transform: scale(1.15);
+  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.4);
+  background-color: #3a6d99;
 }
 
 .plus-icon {
   font-size: 18px;
   font-weight: bold;
+  margin-bottom: 1px; 
 }
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  }
+}
+
 
 @media (max-width: 768px) {
   .card-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    padding: 15px;
+  }
+  .card-container {
+    height: 320px;
+  }
+}
+
+@media (max-width: 480px) {
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+  .card-container {
+    height: 400px;
   }
 }
 </style>

@@ -1,66 +1,82 @@
 <template>
   <div class="card-search-container">
     <h1>MTG Card Search</h1>
-
-    <div class="search-controls">
-      <div class="search-box-wrapper">
-        <div class="search-box">
-          <input 
-            v-model="query" 
-            @input="debouncedSearch" 
-            @keyup.enter="submitSearch" 
-            placeholder="Search cards..." 
-            class="search-input"
+    
+    <div class="main-content">
+      <!-- Search Controls -->
+      <div class="search-controls">
+        <div class="search-box-wrapper">
+          <div class="search-box">
+            <input 
+              v-model="query" 
+              @input="debouncedSearch" 
+              @keyup.enter="submitSearch" 
+              placeholder="Search cards..." 
+              class="search-input"
+            />
+            <button @click="submitSearch" class="search-button">
+              <i class="fas fa-search"></i> Search
+            </button>
+          </div>
+          
+          <CardAutocomplete 
+            v-if="results?.length > 0"
+            :results="results" 
+            @select-card="showCardDetails" 
           />
-          <button @click="submitSearch" class="search-button">
-            <i class="fas fa-search"></i> Search
-          </button>
         </div>
         
-        <CardAutocomplete 
-          v-if="results?.length > 0"
-          :results="results" 
-          @select-card="showCardDetails" 
-        />
+        <button @click="showFilterPopup = true" class="filter-button">
+          <i class="fas fa-filter"></i> Advanced Options
+        </button>
       </div>
-      
-      <button @click="showFilterPopup = true" class="filter-button">
-        <i class="fas fa-filter"></i> Advanced Options
-      </button>
-    </div>
 
-    <!-- Filter Popup -->
-    <FilterPopup 
-    v-if="showFilterPopup"
-    :isOpen="showFilterPopup"
-    :allSets="allSets"
-    :currentFilters="activeFilters"
-    @close-popup="showFilterPopup = false"
-    @apply-filters="handleApplyFilters"
-  />
-
-    <!-- Results Area -->
-    <div class="results-area">
-      <!-- Card Grid -->
-      <CardGrid 
-        v-if="cards && cards.length > 0" 
-        :cards="cards" 
-        @select-card="showCardDetails"
-        @add-to-deck="addCardToDeck" 
+      <!-- Filter Popup -->
+      <FilterPopup 
+        v-if="showFilterPopup"
+        :isOpen="showFilterPopup"
+        :allSets="allSets"
+        :currentFilters="activeFilters"
+        @close-popup="showFilterPopup = false"
+        @apply-filters="handleApplyFilters"
       />
-      <div v-else-if="hasSearched" class="no-results">
-        No cards found matching your criteria
-      </div>
 
-      <!-- Pagination Controls -->
-      <div v-if="(hasMore || page > 1) && cards.length" class="pagination-controls">
-        <button @click="fetchCards(page - 1)" :disabled="page === 1">Previous</button>
-        <span>Page {{ page }}</span>
-        <button @click="fetchCards(page + 1)" :disabled="!hasMore">Next</button>
+      <!-- Results Area -->
+      <div class="results-area">
+        <CardGrid 
+          v-if="cards && cards.length > 0" 
+          :cards="cards" 
+          @select-card="showCardDetails"
+          @add-to-deck="addCardToDeck" 
+        />
+        <div v-if="hasSearched && (!cards || cards.length === 0)" class="no-results">
+          No cards found matching your criteria
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-container" v-if="(hasMore || page > 1) && cards.length">
+          <div class="pagination-controls">
+            <button 
+              @click="fetchCards(page - 1)" 
+              :disabled="page === 1"
+              class="pagination-button"
+            >
+              &lt; Previous
+            </button>
+            <span class="page-number">Page {{ page }}</span>
+            <button 
+              @click="fetchCards(page + 1)" 
+              :disabled="!hasMore"
+              class="pagination-button"
+            >
+              Next &gt;
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Deck Sidebar - for deck management -->
+    <!-- Deck Sidebar -->
     <DeckSidebar 
       ref="deckSidebar"
       :selectedCard="selectedCard"
@@ -78,6 +94,7 @@
     />
   </div>
 </template>
+
 
 <script>
 import axios from "axios";
@@ -270,52 +287,84 @@ export default {
 </script>
 
 <style scoped>
+/* Layout Structure */
 .card-search-container {
-  max-width: 1200px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  position: relative;
+  padding-right: 320px; /* Space for sidebar */
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 20px;
 }
 
+.main-content {
+  flex: 1;
+  width: calc(100% - 320px); /* Full width minus sidebar */
+  margin: 0 auto;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+.results-area {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 20px; /* Add some bottom padding */
+}
+
+/* Typography */
 h1 {
   text-align: center;
   margin-bottom: 20px;
   color: #333;
 }
 
+.page-number {
+  font-weight: bold;
+  color: #333;
+  min-width: 80px;
+  text-align: center;
+}
+
+.no-results {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-size: 18px;
+}
+
+/* Search Controls */
 .search-controls {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
+  max-width: 800px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .search-box-wrapper {
   position: relative;
   width: 100%;
-  max-width: 600px;
 }
 
 .search-box {
   display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.search-container {
-  display: flex;
   gap: 10px;
-  align-items: center;
-  margin-bottom: 10px;
+  width: 100%;
 }
 
 .search-input {
   flex: 1;
-  padding: 10px 15px;
-  font-size: 14px;
+  padding: 12px 15px;
+  font-size: 16px;
   border: 1px solid #ddd;
-  border-radius: 10px;
+  border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  min-width: 200px;
   transition: all 0.3s ease;
 }
 
@@ -325,32 +374,13 @@ h1 {
   box-shadow: 0 2px 8px rgba(66, 153, 225, 0.3);
 }
 
-
-.search-container input {
-  flex: 1;
-  padding: 10px 15px;
-  font-size: 16px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  box-sizing: border-box;
-  min-width: 300px;
-}
-
 .search-button {
+  padding: 12px 20px;
   background-color: #4299e1;
   color: white;
-
-}
-
-.search-button, .filter-button {
-  padding: 10px;
-  height: 40px;
   border: none;
-  border-radius: 10%;
+  border-radius: 8px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   transition: all 0.2s;
 }
 
@@ -359,81 +389,76 @@ h1 {
   transform: scale(1.05);
 }
 
-
 .filter-button {
-  padding: 8px 12px;
-    background-color: #f7fafc;
-    color: #4a5568;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    transition: all 0.2s ease;
-    font-size: 0.9rem;
-    margin-top: 10px;
+  padding: 10px 15px;
+  margin-top: 10px;
+  background-color: #f7fafc;
+  color: #4a5568;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .filter-button:hover {
   background-color: #ebf8ff;
   border-color: #bee3f8;
   color: #3182ce;
-  transform: scale(1.05)
+  transform: scale(1.05);
 }
 
-.autocomplete-container {
-  position: absolute;
-  width: calc(100% - 48px); /* Accounts for search button */
-  max-width: 552px; /* Matches search box width minus button */
-  z-index: 10;
-  top: 100%;
-  left: 0;
-  margin-top: 4px;
-}
-
-.results-area {
-  flex: 1;
-  padding: 0 20px;
+/* Pagination */
+.pagination-container {
+  margin: 40px 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
 }
 
 .pagination-controls {
   display: flex;
-  justify-content: center;
-  margin-top: 20px;
   align-items: center;
+  gap: 20px;
 }
 
-.pagination-controls button {
-  margin: 0 10px;
-  padding: 8px 16px;
+.pagination-button {
+  padding: 10px 20px;
   background-color: #4682B4;
   color: white;
   border: none;
   border-radius: 5px;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
-.pagination-controls button:disabled {
+.pagination-button:hover:not(:disabled) {
+  background-color: #3a6d99;
+}
+
+.pagination-button:disabled {
   background-color: #cccccc;
   cursor: not-allowed;
 }
 
-.pagination-controls span {
-  font-weight: bold;
-}
-
-.no-results {
-  text-align: center;
-  padding: 40px;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  color: #666;
-  font-size: 18px;
+/* Responsive Adjustments */
+@media (max-width: 1024px) {
+  .card-search-container {
+    padding-right: 0;
+  }
+  
+  .main-content {
+    width: 100%;
+    padding-right: 20px;
+  }
 }
 
 @media (max-width: 768px) {
-  .main-content {
+  .search-box {
     flex-direction: column;
+  }
+  
+  .search-button {
+    width: 100%;
   }
 }
 </style>
