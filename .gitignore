@@ -1,0 +1,18 @@
+# This file is used to ignore files and directories in the repository.
+
+node_modules/
+*/node_modules/
+
+.env
+.env.local
+.env.*.local
+
+# Firebase cache
+.firebase/
+
+# IDE files
+.vscode/
+.idea/
+
+# System files
+.DS_Store

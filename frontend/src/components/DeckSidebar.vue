@@ -187,7 +187,7 @@
 
 <script>
 import axios from 'axios';
-
+import { saveDeck, loadDecks, deleteDeck } from '../services/deckService';
 export default {
   name: 'DeckSidebar',
   props: {
@@ -223,20 +223,73 @@ export default {
     }
   },
   methods: {
+    async checkDataSource() {
+      try {
+        console.group('Data Source Debugging');
+        
+        // Check Firebase connection
+        console.log('Testing Firebase connection...');
+        const firebaseDecks = await loadDecks();
+        console.log('Firebase response:', firebaseDecks);
+        
+        // Check local storage
+        const localDecks = localStorage.getItem('mtg-decks');
+        console.log('Local storage contents:', localDecks ? JSON.parse(localDecks) : 'Empty');
+        
+        // Check current component state
+        console.log('Component decks state:', this.decks);
+        
+        console.groupEnd();
+        
+        // Show summary to user
+        if (firebaseDecks && firebaseDecks.length > 0) {
+          alert(`Using Firebase (${firebaseDecks.length} decks found)`);
+        } else if (localDecks) {
+          alert('Using local storage (Firebase not available)');
+        } else {
+          alert('No decks found in either Firebase or local storage');
+        }
+        
+        return firebaseDecks ? 'firebase' : 'local';
+      } catch (error) {
+        console.error('Debug check failed:', error);
+        alert('Debug check failed - check console for details');
+        return 'error';
+      }
+    },
+
     promptDeleteDeck(deck) {
       this.deckToDelete = deck;
       this.showDeleteConfirmation = true;
     },
-    confirmDeleteDeck() {
+    async confirmDeleteDeck() {
       if (!this.deckToDelete) return;
       
-      const index = this.decks.findIndex(d => d.id === this.deckToDelete.id);
-      if (index !== -1) {
-        this.decks.splice(index, 1);
-        this.saveDeckToStorage();
-        
-        if (this.activeDeck && this.activeDeck.id === this.deckToDelete.id) {
-          this.activeDeck = null;
+      try {
+        // Delete from Firebase
+        await deleteDeck(this.deckToDelete.id);
+        // Remove from local state
+        const index = this.decks.findIndex(d => d.id === this.deckToDelete.id);
+        if (index !== -1) {
+          this.decks.splice(index, 1);
+          // Update localStorage as backup
+          localStorage.setItem('mtg-decks', JSON.stringify(this.decks));
+          
+          if (this.activeDeck && this.activeDeck.id === this.deckToDelete.id) {
+            this.activeDeck = null;
+          }
+        }
+      } catch (error) {
+        console.error('Error deleting deck:', error);
+        // Fallback to local storage if Firebase fails
+        const index = this.decks.findIndex(d => d.id === this.deckToDelete.id);
+        if (index !== -1) {
+          this.decks.splice(index, 1);
+          localStorage.setItem('mtg-decks', JSON.stringify(this.decks));
+          
+          if (this.activeDeck && this.activeDeck.id === this.deckToDelete.id) {
+            this.activeDeck = null;
+          }
         }
       }
       
@@ -310,14 +363,11 @@ export default {
         .map(color => `<span class="mana small s${color.toLowerCase()}"></span>`)
         .join(' ');
     },
-
-    // Update the formatManaCost method
     formatManaCost(manaCost) {
       if (!manaCost) return '';
       return manaCost.replace(/\{([^}]+)\}/g, (match, symbol) => {
         let cssClass = symbol.toLowerCase();
         
-        // Handle special cases
         if (cssClass === 't' || cssClass === 'tap') {
           cssClass = 't';
         }
@@ -446,7 +496,7 @@ export default {
       this.selectedCommander = card;
       this.showCommanderSearch = false;
     },
-    createDeck() {
+    async createDeck() {
       if (this.newDeckName && this.selectedCommander) {
         const newDeck = {
           id: Date.now().toString(),
@@ -456,28 +506,75 @@ export default {
           cards: [this.selectedCommander],
           created: new Date().toISOString()
         };
-        this.decks.push(newDeck);
-        this.saveDeckToStorage();
-        this.newDeckName = '';
-        this.selectedCommander = null;
-        this.showCreateDeckModal = false;
-        this.loadDeck(newDeck);
+        
+        try {
+          // Save to Firebase
+          await saveDeck(newDeck);
+          // Add to local state
+          this.decks.push(newDeck);
+          // Update localStorage as backup
+          localStorage.setItem('mtg-decks', JSON.stringify(this.decks));
+          
+          this.newDeckName = '';
+          this.selectedCommander = null;
+          this.showCreateDeckModal = false;
+          this.loadDeck(newDeck);
+        } catch (error) {
+          console.error('Error saving deck:', error);
+          // Fallback to local storage
+          this.decks.push(newDeck);
+          localStorage.setItem('mtg-decks', JSON.stringify(this.decks));
+          
+          this.newDeckName = '';
+          this.selectedCommander = null;
+          this.showCreateDeckModal = false;
+          this.loadDeck(newDeck);
+        }
       }
     },
-    saveDeck() {
+    async saveDeck() {
       const index = this.decks.findIndex(deck => deck.id === this.activeDeck.id);
       if (index !== -1) {
-        this.decks[index] = JSON.parse(JSON.stringify(this.activeDeck));
-        this.saveDeckToStorage();
-        alert('Deck saved!');
+        try {
+          console.log('[DEBUG] Attempting to save to Firebase...');
+          const startTime = Date.now();
+          
+          await saveDeck(this.activeDeck);
+          this.decks[index] = JSON.parse(JSON.stringify(this.activeDeck));
+          
+          const duration = Date.now() - startTime;
+          console.log(`[DEBUG] Firebase save successful (${duration}ms)`);
+          alert(`Deck saved to Firebase in ${duration}ms`);
+          
+        } catch (error) {
+          console.error('[DEBUG] Firebase save failed, falling back to local:', error);
+          
+          // Save to local storage
+          localStorage.setItem('mtg-decks', JSON.stringify(this.decks));
+          alert('Saved to local storage (Firebase failed)');
+        }
       }
     },
-    saveDeckToStorage() {
-      localStorage.setItem('mtg-decks', JSON.stringify(this.decks));
-    },
-    loadDecksFromStorage() {
-      const storedDecks = localStorage.getItem('mtg-decks');
-      if (storedDecks) this.decks = JSON.parse(storedDecks);
+
+    async loadDecksFromStorage() {
+      try {
+        console.log('[DEBUG] Loading decks...');
+        const source = await this.checkDataSource(); // Use our debug method
+        
+        if (source === 'firebase') {
+          const firebaseDecks = await loadDecks();
+          this.decks = firebaseDecks;
+          console.log('[DEBUG] Loaded from Firebase:', firebaseDecks);
+        } else {
+          const storedDecks = localStorage.getItem('mtg-decks');
+          if (storedDecks) {
+            this.decks = JSON.parse(storedDecks);
+            console.log('[DEBUG] Loaded from local storage:', this.decks);
+          }
+        }
+      } catch (error) {
+        console.error('[DEBUG] Load failed:', error);
+      }
     },
     showDeckStats() {
       // Deck stats functionality
@@ -488,6 +585,7 @@ export default {
   }
 };
 </script>
+
 
 <style>
 @import '../assets/mana-master/css/mana-cost.css';
