@@ -1,5 +1,10 @@
 <template>
   <div class="deck-sidebar">
+    <div class="connection-status" :class="firebaseStatus">
+      <span class="status-icon"></span>
+      {{ statusMessage }}
+      <span v-if="lastSyncTime" class="sync-time">({{ formatTime(lastSyncTime) }})</span>
+    </div>
     <div v-if="!activeDeck" class="deck-list">
       <h2 class="sidebar-title">Your Decks</h2>
       <div v-for="deck in decks" :key="deck.id" class="deck-item" @click="loadDeck(deck)">
@@ -188,6 +193,7 @@
 <script>
 import axios from 'axios';
 import { saveDeck, loadDecks, deleteDeck } from '../services/deckService';
+
 export default {
   name: 'DeckSidebar',
   props: {
@@ -208,6 +214,9 @@ export default {
       selectedLand: null,
       landCount: 1,
       deckToDelete: null,
+      firebaseStatus: 'checking', // 'connected', 'disconnected', 'error'
+      lastSyncTime: null,
+      connectionInterval: null
     };
   },
   computed: {
@@ -220,9 +229,34 @@ export default {
     totalCards() {
       if (!this.activeDeck) return 0;
       return this.activeDeck.cards.reduce((total, card) => total + (card.count || 1), 0);
+    },
+    statusMessage() {
+      return {
+        'checking': 'Checking connection...',
+        'connected': 'Connected to Cloud',
+        'disconnected': 'Offline (using local storage)',
+        'error': 'Connection error'
+      }[this.firebaseStatus];
     }
   },
   methods: {
+    async checkConnection() {
+      try {
+        const startTime = Date.now();
+        await loadDecks(); // Simple test query
+        this.firebaseStatus = 'connected';
+        this.lastSyncTime = new Date();
+        console.log(`Firebase connection OK (${Date.now() - startTime}ms)`);
+      } catch (error) {
+        this.firebaseStatus = 'disconnected';
+        console.error('Firebase connection failed:', error);
+      }
+    },
+
+    formatTime(date) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    },
+
     async checkDataSource() {
       try {
         console.group('Data Source Debugging');
@@ -536,44 +570,36 @@ export default {
       const index = this.decks.findIndex(deck => deck.id === this.activeDeck.id);
       if (index !== -1) {
         try {
-          console.log('[DEBUG] Attempting to save to Firebase...');
-          const startTime = Date.now();
-          
+          this.firebaseStatus = 'checking';
           await saveDeck(this.activeDeck);
           this.decks[index] = JSON.parse(JSON.stringify(this.activeDeck));
-          
-          const duration = Date.now() - startTime;
-          console.log(`[DEBUG] Firebase save successful (${duration}ms)`);
-          alert(`Deck saved to Firebase in ${duration}ms`);
-          
+          this.firebaseStatus = 'connected';
+          this.lastSyncTime = new Date();
         } catch (error) {
-          console.error('[DEBUG] Firebase save failed, falling back to local:', error);
-          
-          // Save to local storage
+          this.firebaseStatus = 'disconnected';
           localStorage.setItem('mtg-decks', JSON.stringify(this.decks));
-          alert('Saved to local storage (Firebase failed)');
         }
       }
     },
-
     async loadDecksFromStorage() {
       try {
-        console.log('[DEBUG] Loading decks...');
-        const source = await this.checkDataSource(); // Use our debug method
-        
-        if (source === 'firebase') {
-          const firebaseDecks = await loadDecks();
+        this.firebaseStatus = 'checking';
+        const firebaseDecks = await loadDecks();
+        if (firebaseDecks && firebaseDecks.length > 0) {
           this.decks = firebaseDecks;
-          console.log('[DEBUG] Loaded from Firebase:', firebaseDecks);
+          this.firebaseStatus = 'connected';
+          this.lastSyncTime = new Date();
         } else {
           const storedDecks = localStorage.getItem('mtg-decks');
           if (storedDecks) {
             this.decks = JSON.parse(storedDecks);
-            console.log('[DEBUG] Loaded from local storage:', this.decks);
+            this.firebaseStatus = 'disconnected';
           }
         }
       } catch (error) {
-        console.error('[DEBUG] Load failed:', error);
+        this.firebaseStatus = 'error';
+        const storedDecks = localStorage.getItem('mtg-decks');
+        if (storedDecks) this.decks = JSON.parse(storedDecks);
       }
     },
     showDeckStats() {
@@ -582,6 +608,10 @@ export default {
   },
   mounted() {
     this.loadDecksFromStorage();
+    this.connectionInterval = setInterval(this.checkConnection, 30000); // Check every 30 seconds
+  },
+  beforeUnmount() {
+    clearInterval(this.connectionInterval);
   }
 };
 </script>
@@ -1440,4 +1470,50 @@ export default {
 .color-B { background: #150b00; }
 .color-R { background: #d3202a; }
 .color-G { background: #00733e; }
+
+.connection-status {
+  padding: 8px 12px;
+  margin-bottom: 16px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.status-icon {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.connection-status.checking .status-icon {
+  background-color: #ed8936; /* orange */
+  animation: pulse 1.5s infinite;
+}
+
+.connection-status.connected .status-icon {
+  background-color: #48bb78; /* green */
+}
+
+.connection-status.disconnected .status-icon,
+.connection-status.error .status-icon {
+  background-color: #e53e3e; /* red */
+}
+
+.sync-time {
+  color: #718096;
+  font-size: 0.8rem;
+  margin-left: auto;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
 </style>
