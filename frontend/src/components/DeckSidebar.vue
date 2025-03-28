@@ -10,6 +10,7 @@
       <div v-for="deck in decks" :key="deck.id" class="deck-item" @click="loadDeck(deck)">
         <span class="deck-name">{{ deck.name }}</span>
         <span class="deck-colors" v-html="formatColors(deck.colors)"></span>
+        <span v-if="getDeckCardCount(deck) > 100" class="deck-warning">!</span>
         <button class="delete-deck-btn" @click.stop="promptDeleteDeck(deck)">
           🗑️
         </button>
@@ -18,7 +19,11 @@
       <button class="create-deck-btn" @click="showCreateDeckModal = true">
         <span class="btn-icon">+</span> Create a Deck
       </button>
+      <button class="import-deck-btn" @click="showImportModal = true">
+        <span class="btn-icon">📥</span> Import Deck
+      </button>
     </div>
+    
     
     <div v-else class="active-deck">
       <div class="deck-header">
@@ -104,7 +109,7 @@
       </div>
       
       <div class="deck-actions">
-        <button class="save-deck-btn" :disabled="totalCards > 100" @click="saveDeck">
+        <button class="save-deck-btn" @click="saveDeck">
           Save Deck
         </button>
       </div>
@@ -187,15 +192,22 @@
         </div>
       </div>
     </div>
+    <ImportPopup 
+      v-if="showImportModal"
+      :isOpen="showImportModal"
+      @close="showImportModal = false"
+      @import="handleDeckImport"
+    />
   </div>
 </template>
 
 <script>
 import axios from 'axios';
 import { saveDeck, loadDecks, deleteDeck } from '../services/deckService';
-
+import ImportPopup from './ImportPopup.vue'; 
 export default {
   name: 'DeckSidebar',
+  components: { ImportPopup },
   props: {
     selectedCard: Object,
   },
@@ -216,7 +228,8 @@ export default {
       deckToDelete: null,
       firebaseStatus: 'checking', // 'connected', 'disconnected', 'error'
       lastSyncTime: null,
-      connectionInterval: null
+      connectionInterval: null,
+      showImportModal: false
     };
   },
   computed: {
@@ -237,9 +250,16 @@ export default {
         'disconnected': 'Offline (using local storage)',
         'error': 'Connection error'
       }[this.firebaseStatus];
-    }
-  },
-  methods: {
+    },
+  deckCardCounts() {
+    return this.decks.reduce((acc, deck) => {
+      acc[deck.id] = deck.cards.reduce((total, card) => total + (card.count || 1), 0);
+      return acc;
+    }, {});
+  }
+},
+
+methods: {
     async checkConnection() {
       try {
         const startTime = Date.now();
@@ -296,17 +316,15 @@ export default {
       this.deckToDelete = deck;
       this.showDeleteConfirmation = true;
     },
+
     async confirmDeleteDeck() {
       if (!this.deckToDelete) return;
       
       try {
-        // Delete from Firebase
         await deleteDeck(this.deckToDelete.id);
-        // Remove from local state
         const index = this.decks.findIndex(d => d.id === this.deckToDelete.id);
         if (index !== -1) {
           this.decks.splice(index, 1);
-          // Update localStorage as backup
           localStorage.setItem('mtg-decks', JSON.stringify(this.decks));
           
           if (this.activeDeck && this.activeDeck.id === this.deckToDelete.id) {
@@ -330,6 +348,38 @@ export default {
       this.showDeleteConfirmation = false;
       this.deckToDelete = null;
     },
+
+    async handleDeckImport(deckData) {
+      const newDeck = {
+        id: Date.now().toString(),
+        name: deckData.name,
+        commander: deckData.commander,
+        colors: deckData.colors,
+        cards: deckData.cards,
+        created: deckData.created
+      };
+      
+      try {
+        // Save to Firebase
+        await saveDeck(newDeck);
+        // Add to local state
+        this.decks.push(newDeck);
+        // Update localStorage as backup
+        localStorage.setItem('mtg-decks', JSON.stringify(this.decks));
+        
+        this.showImportModal = false;
+        this.loadDeck(newDeck);
+      } catch (error) {
+        console.error('Error importing deck:', error);
+        // Fallback to local storage
+        this.decks.push(newDeck);
+        localStorage.setItem('mtg-decks', JSON.stringify(this.decks));
+        
+        this.showImportModal = false;
+        this.loadDeck(newDeck);
+      }
+    },
+
     getCardBorderStyle(card) {
       const colors = card.color_identity || [];
       if (colors.length === 0) return 'background: rgba(200, 200, 200, 0.1)';
@@ -359,12 +409,14 @@ export default {
       
       return `background: linear-gradient(135deg, ${gradientStops}, transparent 90%)`;
     },
+
     canHaveMultipleCopies(card) {
       const isBasicLand = /basic (snow )?land/i.test(card.type_line);
       const allowsMultiples = card.oracle_text?.toLowerCase()
         .includes("a deck can have any number of cards named");
       return isBasicLand || allowsMultiples;
     },
+
     isColorIdentityValid(card) {
       if (!this.activeDeck?.commander) return true;
       
@@ -377,6 +429,7 @@ export default {
 
       return cardColors.every(color => commanderColors.includes(color));
     },
+
     isLegalInCommander(card) {
       if (card.legalities?.commander === "banned") return false;
 
@@ -391,12 +444,14 @@ export default {
 
       return true;
     },
+
     formatColors(colors) {
       if (!colors || colors.length === 0) return '<span class="mana small sc"></span>';
       return colors
         .map(color => `<span class="mana small s${color.toLowerCase()}"></span>`)
         .join(' ');
     },
+
     formatManaCost(manaCost) {
       if (!manaCost) return '';
       return manaCost.replace(/\{([^}]+)\}/g, (match, symbol) => {
@@ -422,12 +477,15 @@ export default {
     loadDeck(deck) {
       this.activeDeck = JSON.parse(JSON.stringify(deck));
     },
+
     backToDecks() {
       this.activeDeck = null;
     },
+
     viewCardDetails(card) {
       this.$emit('view-card', card);
     },
+
     addCardToDeck(card) {
       if (!this.activeDeck) {
         alert("Please select a deck first!");
@@ -463,6 +521,7 @@ export default {
       }
       this.$forceUpdate(); 
     },
+
     addOneCard(card, event) {
       const index = this.activeDeck.cards.findIndex(c => c.id === card.id);
       if (index !== -1 && this.canHaveMultipleCopies(card)) {
@@ -480,6 +539,7 @@ export default {
         }
       }
     },
+
     addMultipleLands() {
       if (this.selectedLand && this.landCount > 0) {
         const index = this.activeDeck.cards.findIndex(c => c.id === this.selectedLand.id);
@@ -499,6 +559,7 @@ export default {
         this.landCount = 1;
       }
     },
+
     removeCard(card) {
       const index = this.activeDeck.cards.findIndex(c => c.id === card.id);
       if (index !== -1) {
@@ -509,10 +570,12 @@ export default {
         }
       }
     },
+
     searchCommander() {
       this.showCommanderSearch = true;
       this.searchCommanderCards();
     },
+
     async searchCommanderCards() {
       try {
         const params = this.commanderQuery.length < 2 
@@ -526,10 +589,12 @@ export default {
         this.commanderResults = [];
       }
     },
+
     selectCommander(card) {
       this.selectedCommander = card;
       this.showCommanderSearch = false;
     },
+
     async createDeck() {
       if (this.newDeckName && this.selectedCommander) {
         const newDeck = {
@@ -566,6 +631,7 @@ export default {
         }
       }
     },
+
     async saveDeck() {
       const index = this.decks.findIndex(deck => deck.id === this.activeDeck.id);
       if (index !== -1) {
@@ -581,6 +647,7 @@ export default {
         }
       }
     },
+
     async loadDecksFromStorage() {
       try {
         this.firebaseStatus = 'checking';
@@ -602,9 +669,14 @@ export default {
         if (storedDecks) this.decks = JSON.parse(storedDecks);
       }
     },
+
     showDeckStats() {
       // Deck stats functionality
-    }
+    },
+
+    getDeckCardCount(deck) {
+      return this.deckCardCounts[deck.id] || deck.cards.reduce((total, card) => total + (card.count || 1), 0);
+    },
   },
   mounted() {
     this.loadDecksFromStorage();
@@ -760,6 +832,40 @@ export default {
 
 .create-deck-btn:hover {
   background-color: #3182ce;
+}
+
+.import-deck-btn {
+  width: 100%;
+  padding: 12px;
+  background-color: #38a169;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  margin-top: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.import-deck-btn:hover {
+  background-color: #2f855a;
+}
+
+.deck-warning {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  background-color: #e53e3e;
+  color: white;
+  border-radius: 50%;
+  text-align: center;
+  line-height: 18px;
+  font-weight: bold;
+  margin-right: 8px;
+  font-size: 12px;
 }
 
 .btn-icon {
