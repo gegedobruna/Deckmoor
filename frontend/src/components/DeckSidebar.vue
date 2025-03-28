@@ -37,22 +37,45 @@
         </div>
         
         <div class="deck-title-section">
-          <div class="title-wrapper">
-            <h2 class="deck-title">{{ activeDeck.name }}</h2>
-            <div class="deck-meta-row">
-              <div class="deck-meta">
-                <div class="deck-colors" v-html="formatColors(activeDeck.colors)"> </div>
-                <span :class="['card-count', {'over-limit': totalCards > 100}]">
-                  {{ totalCards }}/100 </span>
-                <div class="deck-header-actions">
-                <button class="stats-btn" @click="showDeckStats">
-                  <span class="stats-icon">📊</span> Stats
-                </button>
-              </div>
-              </div>
-            </div>
-          </div>
+  <div class="title-wrapper">
+    <div class="title-container">
+      <h2 class="deck-title" v-if="!isRenaming">{{ activeDeck.name }}</h2>
+      <div v-else class="rename-input-wrapper">
+        <input 
+          ref="renameInput"
+          v-model="tempDeckName" 
+          @keyup.enter="confirmRenaming"
+          @keyup.esc="cancelRenaming"
+          @blur="cancelRenaming"
+          class="rename-input"
+        />
+        <button class="confirm-rename-btn" @click="confirmRenaming">✓</button>
+        <button class="cancel-rename-btn" @click="cancelRenaming">✕</button>
+      </div>
+      <div class="title-actions">
+        <button v-if="!isRenaming" class="rename-btn" @click="startRenaming" title="Rename Deck">
+          ✏️
+        </button>
+        <button class="export-btn" @click="showExportModal = true" title="Export Deck">
+          📤
+        </button>
+      </div>
+    </div>
+    <div class="deck-meta-row">
+      <div class="deck-meta">
+        <div class="deck-colors" v-html="formatColors(activeDeck.colors)"> </div>
+        <span :class="['card-count', {'over-limit': totalCards > 100}]">
+          {{ totalCards }}/100 
+        </span>
+        <div class="deck-header-actions">
+          <button class="stats-btn" @click="showDeckStats">
+            <span class="stats-icon">📊</span> Stats
+          </button>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
         </div>
       
       <div v-if="activeDeck.commander" class="commander-section">
@@ -198,6 +221,12 @@
       @close="showImportModal = false"
       @import="handleDeckImport"
     />
+    <ExportPopup 
+      v-if="showExportModal"
+      :isOpen="showExportModal"
+      :deck="activeDeck"
+      @close="showExportModal = false"
+    />
   </div>
 </template>
 
@@ -205,9 +234,11 @@
 import axios from 'axios';
 import { saveDeck, loadDecks, deleteDeck } from '../services/deckService';
 import ImportPopup from './ImportPopup.vue'; 
+import ExportPopup from './ExportPopup.vue';
+
 export default {
   name: 'DeckSidebar',
-  components: { ImportPopup },
+  components: { ImportPopup, ExportPopup },
   props: {
     selectedCard: Object,
   },
@@ -229,7 +260,10 @@ export default {
       firebaseStatus: 'checking', // 'connected', 'disconnected', 'error'
       lastSyncTime: null,
       connectionInterval: null,
-      showImportModal: false
+      showImportModal: false,
+      showExportModal: false,
+    isRenaming: false,
+    tempDeckName: ''
     };
   },
   computed: {
@@ -670,6 +704,32 @@ methods: {
       }
     },
 
+    startRenaming() {
+    this.tempDeckName = this.activeDeck.name;
+    this.isRenaming = true;
+    this.$nextTick(() => {
+      this.$refs.renameInput.focus();
+    });
+  },
+  
+  cancelRenaming() {
+    this.isRenaming = false;
+  },
+  
+  confirmRenaming() {
+    if (this.tempDeckName.trim()) {
+      this.activeDeck.name = this.tempDeckName.trim();
+      this.isRenaming = false;
+      this.saveDeck();
+    }
+  },
+
+  handleDeckExport(format) {
+    // This will be implemented in ExportPopup.vue
+    console.log('Exporting deck in format:', format);
+    this.showExportModal = false;
+  },
+
     showDeckStats() {
       // Deck stats functionality
     },
@@ -798,10 +858,14 @@ methods: {
 }
 
 .delete-deck-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
+  background-color: #fff5f5;
   color: #e53e3e;
+  border: 1px solid #fed7d7;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
   font-size: 1.1rem;
   padding: 4px 8px;
   margin-left: 8px;
@@ -880,7 +944,6 @@ methods: {
 .deck-header-top {
   margin-bottom: 12px;
   display: flex;
-    gap: 82px;
 }
 
 .deck-title-section {
@@ -896,22 +959,43 @@ methods: {
   min-width: 0;
 }
 
+.title-container {
+  display: inline-flex;
+  align-items: center;
+  border-bottom: 2px solid #4299e1;
+  width: 100%;
+  padding-bottom: 8px;
+}
+
+.title-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: auto;
+}
+
+.title-actions button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1;
+}
+
 .deck-title {
-  margin: 0 0 8px 0;
+  margin: auto;
   font-size: 1.5rem;
   font-weight: 700;
   color: #2d3748;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #4299e1;
 }
 
 .deck-meta {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
   margin-top: 8px;
 }
 
@@ -1000,7 +1084,7 @@ methods: {
   margin-right: 6px;
 }
 
-.delete-deck-btn {
+.deck-header .deck-header-top .delete-deck-btn {
   padding: 8px 12px;
   background-color: #fff5f5;
   color: #e53e3e;
@@ -1011,6 +1095,7 @@ methods: {
   align-items: center;
   transition: all 0.2s ease;
   font-size: 0.9rem;
+  margin-left: auto;
 }
 
 .delete-deck-btn:hover {
@@ -1625,6 +1710,57 @@ methods: {
   color: #718096;
   font-size: 0.8rem;
   margin-left: auto;
+}
+
+.export-btn, .rename-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.4rem;
+  padding: 6px;
+  margin: 0 2px;
+  transition: all 0.2s ease;
+}
+
+.export-btn:hover {
+  color: #4299e1;
+  transform: scale(1.1);
+}
+
+.rename-btn:hover {
+  color: #38a169;
+  transform: scale(1.1);
+}
+
+.rename-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rename-input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.confirm-rename-btn, .cancel-rename-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 6px;
+}
+
+.confirm-rename-btn {
+  color: #38a169;
+}
+
+.cancel-rename-btn {
+  color: #e53e3e;
 }
 
 @keyframes pulse {
