@@ -31,29 +31,29 @@
           <button class="back-btn" @click="backToDecks">
             <span class="back-icon">←</span> Back to Decks
           </button>
+          <button class="delete-deck-btn" @click="promptDeleteDeck(activeDeck)">
+              🗑️ Delete
+            </button>
         </div>
         
         <div class="deck-title-section">
           <div class="title-wrapper">
             <h2 class="deck-title">{{ activeDeck.name }}</h2>
-            <div class="deck-meta">
-              <div class="deck-colors" v-html="formatColors(activeDeck.colors)"></div>
-              <span :class="['card-count', {'over-limit': totalCards > 100}]">
-                {{ totalCards }}/100
-              </span>
+            <div class="deck-meta-row">
+              <div class="deck-meta">
+                <div class="deck-colors" v-html="formatColors(activeDeck.colors)"> </div>
+                <span :class="['card-count', {'over-limit': totalCards > 100}]">
+                  {{ totalCards }}/100 </span>
+                <div class="deck-header-actions">
+                <button class="stats-btn" @click="showDeckStats">
+                  <span class="stats-icon">📊</span> Stats
+                </button>
+              </div>
+              </div>
             </div>
           </div>
-          
-          <div class="deck-header-actions">
-            <button class="stats-btn" @click="showDeckStats">
-              <span class="stats-icon">📊</span> Stats
-            </button>
-            <button class="delete-deck-btn" @click="promptDeleteDeck(activeDeck)">
-              🗑️ Delete
-            </button>
-          </div>
         </div>
-      </div>
+        </div>
       
       <div v-if="activeDeck.commander" class="commander-section">
         <h3 class="section-title">Commander</h3>
@@ -879,6 +879,8 @@ methods: {
 
 .deck-header-top {
   margin-bottom: 12px;
+  display: flex;
+    gap: 82px;
 }
 
 .deck-title-section {
@@ -907,16 +909,29 @@ methods: {
 }
 
 .deck-meta {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 12px;
   margin-top: 8px;
 }
 
+
 .deck-colors {
   display: flex;
   gap: 4px;
 }
+
+.title-wrapper .deck-meta-row .deck-meta .card-count {
+  padding: 8px 12px;
+  background-color: #f7fafc;
+  color: #4a5568;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
 
 .card-count {
   font-weight: 600;
@@ -1100,11 +1115,7 @@ methods: {
   font-size: 12px;
   color: #595959;
   margin-left: 8px;
-}
-
-.card-count.count-changed {
-  color: #393939;
-  font-weight: bold;
+  margin-right: 8px;
 }
 
 .color-indicator {
@@ -1132,7 +1143,6 @@ methods: {
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
-  margin-left: 8px;
   background-color: #f7fafc;
 }
 
@@ -1188,6 +1198,7 @@ methods: {
   cursor: pointer;
   font-weight: 600;
   transition: background-color 0.2s ease;
+  margin-bottom: 10px;
 }
 
 .save-deck-btn:hover:not(:disabled) {

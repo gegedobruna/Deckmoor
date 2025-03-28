@@ -226,7 +226,7 @@ export default {
 
 .add-to-deck-btn {
   padding: 12px;
-  background-color: var(--primary-color);
+  background-color: #4299e1;
   color: white;
   border: none;
   border-radius: 5px;
@@ -291,13 +291,14 @@ export default {
 
 .close-button {
   position: absolute;
+  color: var(--text-color);
   top: 15px;
   right: 15px;
   background: var(--background-color);
   border: none;
   width: 30px;
   height: 30px;
-  border-radius: 50%;
+  border-radius: 5px;
   font-size: 20px;
   display: flex;
   align-items: center;

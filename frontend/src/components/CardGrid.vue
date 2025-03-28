@@ -141,7 +141,7 @@ export default {
 .add-to-deck-btn:hover {
   transform: scale(1.15);
   box-shadow: 0 3px 15px rgba(0, 0, 0, 0.4);
-  background-color: #3a6d99;
+  background-color: #3182ce;
 }
 
 .plus-icon {
