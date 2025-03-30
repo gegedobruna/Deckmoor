@@ -751,7 +751,7 @@ export default {
 }
 
 .close-btn:hover {
-  color: #333;
+  color: #e53e3e;
 }
 
 /* ============= */

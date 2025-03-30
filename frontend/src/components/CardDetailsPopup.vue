@@ -295,23 +295,16 @@ export default {
 
 .close-button {
   position: absolute;
-  color: var(--text-color);
+  background: none;
+  color: #666;
   top: 15px;
   right: 15px;
-  background: var(--background-color);
   border: none;
-  width: 30px;
-  height: 30px;
-  border-radius: 5px;
-  font-size: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background-color 0.2s;
+  font-size: 1.8rem;
 }
 
 .close-button:hover {
-  background-color: var(--border-color);
+  color: #e53e3e;
 }
+
 </style>

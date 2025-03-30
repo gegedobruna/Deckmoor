@@ -697,7 +697,7 @@
   right: 15px;
   background: none;
   border: none;
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   cursor: pointer;
   color: #718096;
   transition: color 0.2s;
