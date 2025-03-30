@@ -71,6 +71,7 @@
           <button class="stats-btn" @click="showDeckStats">
             <span class="stats-icon">📊</span> Stats
           </button>
+          <StatsPopup v-if="showStatsPopup" @close="toggleStatsPopup" />
         </div>
       </div>
     </div>
@@ -227,6 +228,13 @@
       :deck="activeDeck"
       @close="showExportModal = false"
     />
+    <StatsPopup 
+    v-if="showStatsModal"
+    :isOpen="showStatsModal"
+    :deck="activeDeck"
+    @close="showStatsModal = false"
+    @view-card="viewCardDetails"
+  />
   </div>
 </template>
 
@@ -235,10 +243,12 @@ import axios from 'axios';
 import { saveDeck, loadDecks, deleteDeck } from '../services/deckService';
 import ImportPopup from './ImportPopup.vue'; 
 import ExportPopup from './ExportPopup.vue';
+import StatsPopup from './StatsPopup.vue';
+
 
 export default {
   name: 'DeckSidebar',
-  components: { ImportPopup, ExportPopup },
+  components: { ImportPopup, ExportPopup, StatsPopup},
   props: {
     selectedCard: Object,
   },
@@ -262,8 +272,10 @@ export default {
       connectionInterval: null,
       showImportModal: false,
       showExportModal: false,
-    isRenaming: false,
-    tempDeckName: ''
+      showStatsPopup: false,
+      showStatsModal: false,
+      isRenaming: false,
+      tempDeckName: ''
     };
   },
   computed: {
@@ -730,12 +742,20 @@ methods: {
     this.showExportModal = false;
   },
 
-    showDeckStats() {
-      // Deck stats functionality
+  showDeckStats() {
+    if (this.activeDeck) {
+        this.showStatsModal = true;
+      } else {
+        console.warn("No active deck to show stats for");
+      }
     },
 
     getDeckCardCount(deck) {
       return this.deckCardCounts[deck.id] || deck.cards.reduce((total, card) => total + (card.count || 1), 0);
+    },
+
+    toggleStatsPopup() {
+      this.showStatsPopup = !this.showStatsPopup;
     },
   },
   mounted() {

@@ -265,6 +265,10 @@ export default {
   gap: 10px;
 }
 
+.info-lable {
+  margin-right: 10px;
+}
+
 .oracle-text {
   margin-top: 10px;
   background-color: var(--background-color);
