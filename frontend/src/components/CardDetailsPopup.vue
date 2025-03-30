@@ -67,10 +67,6 @@ export default {
     CardFlip,
   },
   mounted() {
-    // Debug: Check what's in the mana_cost field
-    console.log("Mana Cost:", this.card.mana_cost);
-    console.log("Oracle Text:", this.card.oracle_text);
-    console.log("Colors:", this.card.colors);
   },
   computed: {
     canBeFlipped() {

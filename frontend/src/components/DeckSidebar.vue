@@ -11,9 +11,9 @@
         <span class="deck-name">{{ deck.name }}</span>
         <span class="deck-colors" v-html="formatColors(deck.colors)"></span>
         <span v-if="getDeckCardCount(deck) > 100" class="deck-warning">!</span>
-        <button class="delete-deck-btn" @click.stop="promptDeleteDeck(deck)">
-          🗑️
-        </button>
+          <button class="delete-deck-btn" @click.stop="promptDeleteDeck(deck)">
+            🗑️
+          </button>
       </div>
 
       <button class="create-deck-btn" @click="showCreateDeckModal = true">
@@ -183,28 +183,6 @@
       </div>
     </div>
 
-    <!-- Add Multiple Lands Modal -->
-    <div v-if="showAddLandsModal" class="modal-overlay" @click.self="showAddLandsModal = false">
-      <div class="modal-content">
-        <h2 class="modal-title">Add Multiple Lands</h2>
-        <div class="form-group">
-          <label for="landCount">How many copies?</label>
-          <input id="landCount" v-model.number="landCount" type="number" min="1" max="99">
-        </div>
-        <div class="selected-land">
-          <h3 class="modal-subtitle">Selected Land:</h3>
-          <div class="land-preview">
-            <img :src="selectedLand.image_uris?.small || selectedLand.card_faces?.[0]?.image_uris?.small" :alt="selectedLand.name">
-            <span class="selected-card-name">{{ selectedLand.name }}</span>
-          </div>
-        </div>
-        <div class="modal-actions">
-          <button class="cancel-btn" @click="showAddLandsModal = false">Cancel</button>
-          <button class="confirm-btn" @click="addMultipleLands">Add</button>
-        </div>
-      </div>
-    </div>
-
     <!-- Delete Confirmation Modal -->
     <div v-if="showDeleteConfirmation" class="modal-overlay" @click.self="showDeleteConfirmation = false">
       <div class="modal-content">
@@ -267,7 +245,7 @@ export default {
       selectedLand: null,
       landCount: 1,
       deckToDelete: null,
-      firebaseStatus: 'checking', // 'connected', 'disconnected', 'error'
+      firebaseStatus: 'checking',
       lastSyncTime: null,
       connectionInterval: null,
       showImportModal: false,
@@ -297,13 +275,14 @@ export default {
         'error': 'Connection error'
       }[this.firebaseStatus];
     },
-  deckCardCounts() {
-    return this.decks.reduce((acc, deck) => {
-      acc[deck.id] = deck.cards.reduce((total, card) => total + (card.count || 1), 0);
-      return acc;
-    }, {});
-  }
-},
+    deckCardCounts() {
+  return this.decks.reduce((acc, deck) => {
+    if (!deck || !deck.cards) return acc;
+    acc[deck.id] = deck.cards.reduce((sum, c) => sum + c.quantity, 0);
+    return acc;
+  }, {});
+}
+  },
 
 methods: {
     async checkConnection() {
@@ -586,26 +565,6 @@ methods: {
       }
     },
 
-    addMultipleLands() {
-      if (this.selectedLand && this.landCount > 0) {
-        const index = this.activeDeck.cards.findIndex(c => c.id === this.selectedLand.id);
-        if (index !== -1) {
-          if (!this.activeDeck.cards[index].count) {
-            this.activeDeck.cards[index].count = this.landCount;
-          } else {
-            this.activeDeck.cards[index].count += this.landCount - 1;
-          }
-        } else {
-          const landClone = JSON.parse(JSON.stringify(this.selectedLand));
-          landClone.count = this.landCount;
-          this.activeDeck.cards.push(landClone);
-        }
-        this.showAddLandsModal = false;
-        this.selectedLand = null;
-        this.landCount = 1;
-      }
-    },
-
     removeCard(card) {
       const index = this.activeDeck.cards.findIndex(c => c.id === card.id);
       if (index !== -1) {
@@ -751,9 +710,9 @@ methods: {
     },
 
     getDeckCardCount(deck) {
-      return this.deckCardCounts[deck.id] || deck.cards.reduce((total, card) => total + (card.count || 1), 0);
-    },
-
+    if (!deck || !deck.cards) return 0;
+    return deck.cards.reduce((sum, card) => sum + (card.count || 1), 0);
+  },
     toggleStatsPopup() {
       this.showStatsPopup = !this.showStatsPopup;
     },
@@ -1047,7 +1006,7 @@ methods: {
   font-size: 0.9rem;
 }
 
-.card-count.over-limit {
+.title-wrapper .deck-meta-row .deck-meta .card-count.card-count.over-limit {
   color: white;
   background-color: #e53e3e;
   border-color: #e53e3e;
