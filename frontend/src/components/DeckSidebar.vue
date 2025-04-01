@@ -7,6 +7,9 @@
     </div>
     <div v-if="!activeDeck" class="deck-list">
       <h2 class="sidebar-title">Your Decks</h2>
+      <button class="playtest-btn" @click="openPlaytest()">
+  ▶️ Playtest
+</button>
       <div v-for="deck in decks" :key="deck.id" class="deck-item" @click="loadDeck(deck)">
         <span class="deck-name">{{ deck.name }}</span>
         <span class="deck-colors" v-html="formatColors(deck.colors)"></span>
@@ -213,6 +216,11 @@
     @close="showStatsModal = false"
     @view-card="viewCardDetails"
   />
+  <PlaytestPopup 
+  :decks="decks" 
+  v-if="showPlaytestPopup" 
+  @close="showPlaytestPopup = false" 
+/>
   </div>
 </template>
 
@@ -222,11 +230,13 @@ import { saveDeck, loadDecks, deleteDeck } from '../services/deckService';
 import ImportPopup from './ImportPopup.vue'; 
 import ExportPopup from './ExportPopup.vue';
 import StatsPopup from './StatsPopup.vue';
+import PlaytestPopup from './PlaytestPopup.vue';
+
 
 
 export default {
   name: 'DeckSidebar',
-  components: { ImportPopup, ExportPopup, StatsPopup},
+  components: { ImportPopup, ExportPopup, StatsPopup, PlaytestPopup},
   props: {
     selectedCard: Object,
   },
@@ -253,7 +263,8 @@ export default {
       showStatsPopup: false,
       showStatsModal: false,
       isRenaming: false,
-      tempDeckName: ''
+      tempDeckName: '',
+      showPlaytest: false,
     };
   },
   computed: {
@@ -404,6 +415,17 @@ methods: {
         this.loadDeck(newDeck);
       }
     },
+
+    async openPlaytest() {
+  try {
+    // Ensure decks are loaded
+    await this.loadDecksFromStorage();
+    console.log('Decks before opening popup:', this.decks);
+    this.showPlaytestPopup = true;
+  } catch (error) {
+    console.error('Error loading decks:', error);
+  }
+},
 
     getCardBorderStyle(card) {
       const colors = card.color_identity || [];
@@ -802,6 +824,30 @@ methods: {
   margin-bottom: 12px;
   padding-bottom: 6px;
   border-bottom: 1px solid #e2e8f0;
+}
+
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.playtest-btn {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.playtest-btn:hover {
+  background-color: #45a049;
 }
 
 .deck-list h2 {

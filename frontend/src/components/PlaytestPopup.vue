@@ -1,626 +1,657 @@
 <template>
-    <div class="playtest-popup">
-      <!-- Deck Selection Phase -->
-      <div v-if="phase === 'select'" class="deck-selection">
-        <h2>Select a Deck to Playtest</h2>
+  <div class="playtest-popup">
+      <button @click="$emit('close')" class="close-button">Close</button>
+    <!-- Deck Selection Phase -->
+    <div v-if="phase === 'select'" class="deck-selection">
+  <h2>Select a Deck to Playtest</h2>
+  <div v-if="!decks || decks.length === 0" class="no-decks-message">
+    <p>No decks available. Please create a deck first.</p>
+    <p v-if="loading">Loading decks...</p>
+  </div>
+      <div v-else>
         <select v-model="selectedDeck" class="deck-selector">
+          <option value="" disabled selected>-- Select a deck --</option>
           <option v-for="deck in decks" :key="deck.id" :value="deck.id">
             {{ deck.name }}
           </option>
         </select>
-        <button @click="loadDeck" class="confirm-button">Load Deck</button>
+        <button @click="loadDeck" :disabled="!selectedDeck" class="confirm-button">
+          Load Deck
+        </button>
       </div>
-  
-      <!-- Initial Draw Phase -->
-      <div v-if="phase === 'initialDraw'" class="initial-draw">
-        <h2>Your Opening Hand</h2>
-        <div class="hand-zone">
-          <div 
-            v-for="(card, index) in initialHand" 
-            :key="index" 
-            class="card-wrapper"
-            @click="toggleCardSelect(index)"
-            :class="{ 'selected': selectedCards.includes(index) }"
-          >
-            <img :src="card.image_uris?.normal || card.card_faces[0].image_uris.normal" 
-                 :alt="card.name" 
-                 class="card-image"
-                 draggable="false">
+    </div>
+
+    <!-- Initial Draw Phase -->
+    <div v-if="phase === 'initialDraw'" class="initial-draw">
+      <h2>Your Opening Hand</h2>
+      <div class="hand-zone">
+        <div 
+          v-for="(card, index) in initialHand" 
+          :key="index" 
+          class="card-wrapper"
+          @click="toggleCardSelect(index)"
+          :class="{ 'selected': selectedCards.includes(index) }"
+        >
+          <img :src="card.image_uris?.normal || card.card_faces[0].image_uris.normal" 
+               :alt="card.name" 
+               class="card-image"
+               draggable="false">
+        </div>
+      </div>
+      <div class="action-buttons">
+        <button @click="keepHand" class="action-button keep">Keep</button>
+        <button @click="mulligan" class="action-button mulligan">Mulligan</button>
+        <button @click="drawCard" class="action-button draw">Draw</button>
+      </div>
+    </div>
+
+    <!-- Playtest Interface -->
+    <div v-if="phase === 'playtest'" class="playtest-interface">
+      <!-- Command Zone -->
+      <div class="command-zone" @drop="dropCard($event, 'command')" @dragover.prevent>
+        <h3>Command Zone</h3>
+        <div v-for="(card, index) in commandZone" :key="'command-' + index" class="card-wrapper">
+          <img :src="getCardImage(card)" 
+               :alt="card.name" 
+               class="card-image"
+               draggable="true"
+               @dragstart="dragStart($event, card, 'command', index)"
+               @contextmenu.prevent="openCardMenu($event, card, 'command', index)">
+          <div v-if="card.isCommander" class="commander-tax">
+            Tax: {{ commanderTax }}
           </div>
         </div>
-        <div class="action-buttons">
-          <button @click="keepHand" class="action-button keep">Keep</button>
-          <button @click="mulligan" class="action-button mulligan">Mulligan</button>
-          <button @click="drawCard" class="action-button draw">Draw</button>
+      </div>
+
+      <!-- Exile Zone -->
+      <div class="exile-zone" @drop="dropCard($event, 'exile')" @dragover.prevent>
+        <h3>Exile</h3>
+        <div v-for="(card, index) in exileZone" :key="'exile-' + index" class="card-wrapper">
+          <img :src="getCardImage(card)" 
+               :alt="card.name" 
+               class="card-image"
+               draggable="true"
+               @dragstart="dragStart($event, card, 'exile', index)"
+               @contextmenu.prevent="openCardMenu($event, card, 'exile', index)">
         </div>
       </div>
-  
-      <!-- Playtest Interface -->
-      <div v-if="phase === 'playtest'" class="playtest-interface">
-        <!-- Command Zone -->
-        <div class="command-zone" @drop="dropCard($event, 'command')" @dragover.prevent>
-          <h3>Command Zone</h3>
-          <div v-for="(card, index) in commandZone" :key="'command-' + index" class="card-wrapper">
+
+      <!-- Battlefield -->
+      <div class="battlefield" @drop="dropCard($event, 'battlefield')" @dragover.prevent>
+        <h3>Battlefield</h3>
+        <div class="battlefield-cards">
+          <div v-for="(card, index) in battlefield" :key="'battlefield-' + index" 
+               class="battlefield-card" 
+               :style="{ transform: card.tapped ? 'rotate(90deg)' : 'none' }">
             <img :src="getCardImage(card)" 
                  :alt="card.name" 
                  class="card-image"
                  draggable="true"
-                 @dragstart="dragStart($event, card, 'command', index)"
-                 @contextmenu.prevent="openCardMenu($event, card, 'command', index)">
-            <div v-if="card.isCommander" class="commander-tax">
-              Tax: {{ commanderTax }}
+                 @dragstart="dragStart($event, card, 'battlefield', index)"
+                 @contextmenu.prevent="openCardMenu($event, card, 'battlefield', index)">
+            <div v-if="card.counters > 0" class="counter-badge">
+              {{ card.counters }}
+            </div>
+            <div v-if="card.power !== undefined || card.toughness !== undefined" class="pt-indicator">
+              {{ card.power }}/{{ card.toughness }}
             </div>
           </div>
         </div>
-  
-        <!-- Exile Zone -->
-        <div class="exile-zone" @drop="dropCard($event, 'exile')" @dragover.prevent>
-          <h3>Exile</h3>
-          <div v-for="(card, index) in exileZone" :key="'exile-' + index" class="card-wrapper">
+        <button @click="addToken" class="token-button">Add Token</button>
+      </div>
+
+      <!-- Hand Zone -->
+      <div class="hand-zone" @drop="dropCard($event, 'hand')" @dragover.prevent>
+        <h3>Hand</h3>
+        <div class="hand-cards">
+          <div v-for="(card, index) in hand" :key="'hand-' + index" class="card-wrapper">
             <img :src="getCardImage(card)" 
                  :alt="card.name" 
                  class="card-image"
                  draggable="true"
-                 @dragstart="dragStart($event, card, 'exile', index)"
-                 @contextmenu.prevent="openCardMenu($event, card, 'exile', index)">
+                 @dragstart="dragStart($event, card, 'hand', index)"
+                 @contextmenu.prevent="openCardMenu($event, card, 'hand', index)">
           </div>
         </div>
-  
-        <!-- Battlefield -->
-        <div class="battlefield" @drop="dropCard($event, 'battlefield')" @dragover.prevent>
-          <h3>Battlefield</h3>
-          <div class="battlefield-cards">
-            <div v-for="(card, index) in battlefield" :key="'battlefield-' + index" 
-                 class="battlefield-card" 
-                 :style="{ transform: card.tapped ? 'rotate(90deg)' : 'none' }">
+      </div>
+
+      <!-- Library and Graveyard -->
+      <div class="library-graveyard">
+        <div class="library" @drop="dropCard($event, 'library')" @dragover.prevent>
+          <h3>Library ({{ library.length }})</h3>
+          <img src="@/assets/cards/mtg-card-back.jpg" 
+               alt="Library" 
+               class="library-image"
+               @click="searchLibrary"
+               draggable="false">
+          <button @click="drawCard" class="draw-button">Draw</button>
+        </div>
+        <div class="graveyard" @drop="dropCard($event, 'graveyard')" @dragover.prevent>
+          <h3>Graveyard</h3>
+          <div v-if="graveyard.length > 0" class="top-of-graveyard">
+            <img :src="getCardImage(graveyard[graveyard.length - 1])" 
+                 :alt="graveyard[graveyard.length - 1].name" 
+                 class="card-image"
+                 draggable="true"
+                 @dragstart="dragStart($event, graveyard[graveyard.length - 1], 'graveyard', graveyard.length - 1)"
+                 @contextmenu.prevent="openCardMenu($event, graveyard[graveyard.length - 1], 'graveyard', graveyard.length - 1)">
+          </div>
+          <div v-else class="empty-graveyard">
+            <span>Empty</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Context Menu -->
+      <div v-if="showContextMenu" 
+           class="context-menu" 
+           :style="{ top: contextMenuPosition.y + 'px', left: contextMenuPosition.x + 'px' }"
+           @click.stop>
+        <div class="context-menu-item" @click="flipCard">Flip Card</div>
+        <div class="context-menu-item" @click="tapCard">{{ draggedCard.tapped ? 'Untap' : 'Tap' }}</div>
+        <div class="context-menu-item" @click="addCounter">Add Counter</div>
+        <div class="context-menu-item" @click="removeCounter">Remove Counter</div>
+        <div class="context-menu-item" @click="setPowerToughness">Set Power/Toughness</div>
+        <div class="context-menu-item" @click="createTokenCopy">Create Token Copy</div>
+      </div>
+
+      <!-- Token Creation Modal -->
+      <div v-if="showTokenModal" class="modal-overlay">
+        <div class="token-modal">
+          <h3>Create Token</h3>
+          <div class="token-form">
+            <label>
+              Token Name:
+              <input v-model="tokenName" type="text" placeholder="Enter token name">
+            </label>
+            <label>
+              Quantity:
+              <input v-model="tokenQuantity" type="number" min="1" max="100" value="1">
+            </label>
+            <label>
+              Image URL (optional):
+              <input v-model="tokenImageUrl" type="text" placeholder="Enter image URL">
+            </label>
+            <div class="token-modal-buttons">
+              <button @click="createToken" class="confirm-button">Create</button>
+              <button @click="cancelTokenCreation" class="cancel-button">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Power/Toughness Modal -->
+      <div v-if="showPTModal" class="modal-overlay">
+        <div class="pt-modal">
+          <h3>Set Power/Toughness</h3>
+          <div class="pt-form">
+            <label>
+              Power:
+              <input v-model="newPower" type="number">
+            </label>
+            <label>
+              Toughness:
+              <input v-model="newToughness" type="number">
+            </label>
+            <div class="pt-modal-buttons">
+              <button @click="savePT" class="confirm-button">Save</button>
+              <button @click="cancelPT" class="cancel-button">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Library Search Modal -->
+      <div v-if="showLibrarySearch" class="modal-overlay">
+        <div class="library-search-modal">
+          <h3>Search Library</h3>
+          <input v-model="librarySearchQuery" 
+                 type="text" 
+                 placeholder="Search for a card..."
+                 @input="searchLibraryCards">
+          <div class="search-results">
+            <div v-for="card in librarySearchResults" 
+                 :key="card.id" 
+                 class="search-result-card"
+                 @click="moveCardToHand(card)">
               <img :src="getCardImage(card)" 
                    :alt="card.name" 
-                   class="card-image"
-                   draggable="true"
-                   @dragstart="dragStart($event, card, 'battlefield', index)"
-                   @contextmenu.prevent="openCardMenu($event, card, 'battlefield', index)">
-              <div v-if="card.counters > 0" class="counter-badge">
-                {{ card.counters }}
-              </div>
-              <div v-if="card.power !== undefined || card.toughness !== undefined" class="pt-indicator">
-                {{ card.power }}/{{ card.toughness }}
-              </div>
+                   class="search-card-image">
+              <span>{{ card.name }}</span>
             </div>
           </div>
-          <button @click="addToken" class="token-button">Add Token</button>
-        </div>
-  
-        <!-- Hand Zone -->
-        <div class="hand-zone" @drop="dropCard($event, 'hand')" @dragover.prevent>
-          <h3>Hand</h3>
-          <div class="hand-cards">
-            <div v-for="(card, index) in hand" :key="'hand-' + index" class="card-wrapper">
-              <img :src="getCardImage(card)" 
-                   :alt="card.name" 
-                   class="card-image"
-                   draggable="true"
-                   @dragstart="dragStart($event, card, 'hand', index)"
-                   @contextmenu.prevent="openCardMenu($event, card, 'hand', index)">
-            </div>
-          </div>
-        </div>
-  
-        <!-- Library and Graveyard -->
-        <div class="library-graveyard">
-          <div class="library" @drop="dropCard($event, 'library')" @dragover.prevent>
-            <h3>Library ({{ library.length }})</h3>
-            <img src="@/assets/mtg-card-back.jpg" 
-                 alt="Library" 
-                 class="library-image"
-                 @click="searchLibrary"
-                 draggable="false">
-            <button @click="drawCard" class="draw-button">Draw</button>
-          </div>
-          <div class="graveyard" @drop="dropCard($event, 'graveyard')" @dragover.prevent>
-            <h3>Graveyard</h3>
-            <div v-if="graveyard.length > 0" class="top-of-graveyard">
-              <img :src="getCardImage(graveyard[graveyard.length - 1])" 
-                   :alt="graveyard[graveyard.length - 1].name" 
-                   class="card-image"
-                   draggable="true"
-                   @dragstart="dragStart($event, graveyard[graveyard.length - 1], 'graveyard', graveyard.length - 1)"
-                   @contextmenu.prevent="openCardMenu($event, graveyard[graveyard.length - 1], 'graveyard', graveyard.length - 1)">
-            </div>
-            <div v-else class="empty-graveyard">
-              <span>Empty</span>
-            </div>
-          </div>
-        </div>
-  
-        <!-- Context Menu -->
-        <div v-if="showContextMenu" 
-             class="context-menu" 
-             :style="{ top: contextMenuPosition.y + 'px', left: contextMenuPosition.x + 'px' }"
-             @click.stop>
-          <div class="context-menu-item" @click="flipCard">Flip Card</div>
-          <div class="context-menu-item" @click="tapCard">{{ draggedCard.tapped ? 'Untap' : 'Tap' }}</div>
-          <div class="context-menu-item" @click="addCounter">Add Counter</div>
-          <div class="context-menu-item" @click="removeCounter">Remove Counter</div>
-          <div class="context-menu-item" @click="setPowerToughness">Set Power/Toughness</div>
-          <div class="context-menu-item" @click="createTokenCopy">Create Token Copy</div>
-        </div>
-  
-        <!-- Token Creation Modal -->
-        <div v-if="showTokenModal" class="modal-overlay">
-          <div class="token-modal">
-            <h3>Create Token</h3>
-            <div class="token-form">
-              <label>
-                Token Name:
-                <input v-model="tokenName" type="text" placeholder="Enter token name">
-              </label>
-              <label>
-                Quantity:
-                <input v-model="tokenQuantity" type="number" min="1" max="100" value="1">
-              </label>
-              <label>
-                Image URL (optional):
-                <input v-model="tokenImageUrl" type="text" placeholder="Enter image URL">
-              </label>
-              <div class="token-modal-buttons">
-                <button @click="createToken" class="confirm-button">Create</button>
-                <button @click="cancelTokenCreation" class="cancel-button">Cancel</button>
-              </div>
-            </div>
-          </div>
-        </div>
-  
-        <!-- Power/Toughness Modal -->
-        <div v-if="showPTModal" class="modal-overlay">
-          <div class="pt-modal">
-            <h3>Set Power/Toughness</h3>
-            <div class="pt-form">
-              <label>
-                Power:
-                <input v-model="newPower" type="number">
-              </label>
-              <label>
-                Toughness:
-                <input v-model="newToughness" type="number">
-              </label>
-              <div class="pt-modal-buttons">
-                <button @click="savePT" class="confirm-button">Save</button>
-                <button @click="cancelPT" class="cancel-button">Cancel</button>
-              </div>
-            </div>
-          </div>
-        </div>
-  
-        <!-- Library Search Modal -->
-        <div v-if="showLibrarySearch" class="modal-overlay">
-          <div class="library-search-modal">
-            <h3>Search Library</h3>
-            <input v-model="librarySearchQuery" 
-                   type="text" 
-                   placeholder="Search for a card..."
-                   @input="searchLibraryCards">
-            <div class="search-results">
-              <div v-for="card in librarySearchResults" 
-                   :key="card.id" 
-                   class="search-result-card"
-                   @click="moveCardToHand(card)">
-                <img :src="getCardImage(card)" 
-                     :alt="card.name" 
-                     class="search-card-image">
-                <span>{{ card.name }}</span>
-              </div>
-            </div>
-            <div class="library-search-buttons">
-              <button @click="closeLibrarySearch" class="cancel-button">Close</button>
-            </div>
+          <div class="library-search-buttons">
+            <button @click="closeLibrarySearch" class="cancel-button">Close</button>
           </div>
         </div>
       </div>
     </div>
-  </template>
-  
-  <script>
-  export default {
-    name: 'PlaytestPopup',
-    props: {
-      decks: {
-        type: Array,
-        required: true
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'PlaytestPopup',
+  props: {
+    decks: {
+      type: Array,
+      default: () => []
+    }
+  },
+  data() {
+    return {
+      selectedDeck: null,
+      phase: 'select', // 'select', 'initialDraw', 'playtest'
+      initialHand: [],
+      selectedCards: [],
+      loading: true,
+      
+      // Game zones
+      hand: [],
+      library: [],
+      graveyard: [],
+      exileZone: [],
+      commandZone: [],
+      battlefield: [],
+      
+      // Drag and drop
+      draggedCard: null,
+      draggedFromZone: null,
+      draggedFromIndex: null,
+      
+      // Context menu
+      showContextMenu: false,
+      contextMenuPosition: { x: 0, y: 0 },
+      contextCard: null,
+      contextZone: null,
+      contextIndex: null,
+      
+      // Token creation
+      showTokenModal: false,
+      tokenName: '',
+      tokenQuantity: 1,
+      tokenImageUrl: '',
+      
+      // Power/Toughness
+      showPTModal: false,
+      newPower: 0,
+      newToughness: 0,
+      
+      // Library search
+      showLibrarySearch: false,
+      librarySearchQuery: '',
+      librarySearchResults: [],
+      
+      // Game state
+      commanderTax: 0,
+      mulliganCount: 0
+    }
+  },
+  mounted() {
+    // Log decks to help with debugging
+    console.log('Decks received in PlaytestPopup:', this.decks);
+  if (!this.decks || this.decks.length === 0) {
+    console.warn('No decks received in PlaytestPopup');
+  }
+
+  console.log('Decks available:', this.decks);
+  this.loading = false;
+  },
+  methods: {
+    loadDeck() {
+      if (!this.selectedDeck) {
+        console.error('No deck selected');
+        return;
+      }
+      
+      const deck = this.decks.find(d => d.id === this.selectedDeck);
+      if (!deck) {
+        console.error('Selected deck not found:', this.selectedDeck);
+        return;
+      }
+      
+      console.log('Loading deck:', deck);
+      
+      // Shuffle the deck
+      this.library = [...deck.cards];
+      this.shuffleDeck();
+      
+      // Check for commanders
+      if (deck.commanders && deck.commanders.length > 0) {
+        this.commandZone = deck.commanders.map(commander => ({
+          ...commander,
+          isCommander: true
+        }));
+      }
+      
+      // Draw initial hand
+      this.drawInitialHand();
+      this.phase = 'initialDraw';
+    },
+    
+    shuffleDeck() {
+      for (let i = this.library.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [this.library[i], this.library[j]] = [this.library[j], this.library[i]];
       }
     },
-    data() {
-      return {
-        selectedDeck: null,
-        phase: 'select', // 'select', 'initialDraw', 'playtest'
-        initialHand: [],
-        selectedCards: [],
-        
-        // Game zones
-        hand: [],
-        library: [],
-        graveyard: [],
-        exileZone: [],
-        commandZone: [],
-        battlefield: [],
-        
-        // Drag and drop
-        draggedCard: null,
-        draggedFromZone: null,
-        draggedFromIndex: null,
-        
-        // Context menu
-        showContextMenu: false,
-        contextMenuPosition: { x: 0, y: 0 },
-        contextCard: null,
-        contextZone: null,
-        contextIndex: null,
-        
-        // Token creation
-        showTokenModal: false,
-        tokenName: '',
-        tokenQuantity: 1,
-        tokenImageUrl: '',
-        
-        // Power/Toughness
-        showPTModal: false,
-        newPower: 0,
-        newToughness: 0,
-        
-        // Library search
-        showLibrarySearch: false,
-        librarySearchQuery: '',
-        librarySearchResults: [],
-        
-        // Game state
-        commanderTax: 0,
-        mulliganCount: 0
-      }
-    },
-    methods: {
-      loadDeck() {
-        if (!this.selectedDeck) return;
-        
-        const deck = this.decks.find(d => d.id === this.selectedDeck);
-        if (!deck) return;
-        
-        // Shuffle the deck
-        this.library = [...deck.cards];
-        this.shuffleDeck();
-        
-        // Check for commanders
-        if (deck.commanders && deck.commanders.length > 0) {
-          this.commandZone = deck.commanders.map(commander => ({
-            ...commander,
-            isCommander: true
-          }));
-        }
-        
-        // Draw initial hand
-        this.drawInitialHand();
-        this.phase = 'initialDraw';
-      },
-      
-      shuffleDeck() {
-        for (let i = this.library.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [this.library[i], this.library[j]] = [this.library[j], this.library[i]];
-        }
-      },
-      
-      drawInitialHand() {
-        this.initialHand = [];
-        for (let i = 0; i < 7; i++) {
-          if (this.library.length > 0) {
-            this.initialHand.push(this.library.pop());
-          }
-        }
-      },
-      
-      toggleCardSelect(index) {
-        const idx = this.selectedCards.indexOf(index);
-        if (idx === -1) {
-          this.selectedCards.push(index);
-        } else {
-          this.selectedCards.splice(idx, 1);
-        }
-      },
-      
-      keepHand() {
-        this.hand = [...this.initialHand];
-        this.phase = 'playtest';
-      },
-      
-      mulligan() {
-        this.mulliganCount++;
-        
-        // Put selected cards back (or all if none selected)
-        const cardsToMulligan = this.selectedCards.length > 0 
-          ? this.selectedCards.sort((a, b) => b - a).map(i => this.initialHand[i])
-          : [...this.initialHand];
-        
-        // Return cards to library
-        cardsToMulligan.forEach(card => {
-          this.library.push(card);
-        });
-        
-        // Shuffle
-        this.shuffleDeck();
-        
-        // Draw new hand (one less if not partial mulligan)
-        const newHandSize = this.selectedCards.length > 0 
-          ? this.initialHand.length 
-          : Math.max(0, 7 - this.mulliganCount);
-        
-        this.initialHand = [];
-        this.selectedCards = [];
-        
-        for (let i = 0; i < newHandSize; i++) {
-          if (this.library.length > 0) {
-            this.initialHand.push(this.library.pop());
-          }
-        }
-      },
-      
-      drawCard() {
+    
+    drawInitialHand() {
+      this.initialHand = [];
+      for (let i = 0; i < 7; i++) {
         if (this.library.length > 0) {
-          const card = this.library.pop();
-          if (this.phase === 'initialDraw') {
-            this.initialHand.push(card);
-          } else {
-            this.hand.push(card);
-          }
+          this.initialHand.push(this.library.pop());
         }
-      },
+      }
+    },
+    
+    toggleCardSelect(index) {
+      const idx = this.selectedCards.indexOf(index);
+      if (idx === -1) {
+        this.selectedCards.push(index);
+      } else {
+        this.selectedCards.splice(idx, 1);
+      }
+    },
+    
+    keepHand() {
+      this.hand = [...this.initialHand];
+      this.phase = 'playtest';
+    },
+    
+    mulligan() {
+      this.mulliganCount++;
       
-      // Drag and Drop methods
-      dragStart(event, card, zone, index) {
-        event.dataTransfer.setData('text/plain', ''); // Required for Firefox
-        this.draggedCard = card;
-        this.draggedFromZone = zone;
-        this.draggedFromIndex = index;
-      },
+      // Put selected cards back (or all if none selected)
+      const cardsToMulligan = this.selectedCards.length > 0 
+        ? this.selectedCards.sort((a, b) => b - a).map(i => this.initialHand[i])
+        : [...this.initialHand];
       
-      dropCard(event, targetZone) {
-        event.preventDefault();
-        
-        if (!this.draggedCard) return;
-        
-        // Remove from original zone
-        switch (this.draggedFromZone) {
-          case 'hand':
-            this.hand.splice(this.draggedFromIndex, 1);
-            break;
-          case 'battlefield':
-            this.battlefield.splice(this.draggedFromIndex, 1);
-            break;
-          case 'graveyard':
-            this.graveyard.splice(this.draggedFromIndex, 1);
-            break;
-          case 'exile':
-            this.exileZone.splice(this.draggedFromIndex, 1);
-            break;
-          case 'command':
-            this.commandZone.splice(this.draggedFromIndex, 1);
-            break;
-          case 'library':
-            this.library.splice(this.draggedFromIndex, 1);
-            break;
+      // Return cards to library
+      cardsToMulligan.forEach(card => {
+        this.library.push(card);
+      });
+      
+      // Shuffle
+      this.shuffleDeck();
+      
+      // Draw new hand (one less if not partial mulligan)
+      const newHandSize = this.selectedCards.length > 0 
+        ? this.initialHand.length 
+        : Math.max(0, 7 - this.mulliganCount);
+      
+      this.initialHand = [];
+      this.selectedCards = [];
+      
+      for (let i = 0; i < newHandSize; i++) {
+        if (this.library.length > 0) {
+          this.initialHand.push(this.library.pop());
         }
-        
-        // Add to target zone
-        const cardToAdd = { ...this.draggedCard };
-        
-        // Handle tokens (they can't go to certain zones)
-        if (cardToAdd.isToken) {
-          if (targetZone === 'hand' || targetZone === 'library') {
-            // Tokens cease to exist when moved to hand or library
-            this.draggedCard = null;
-            return;
-          }
-        }
-        
-        switch (targetZone) {
-          case 'hand':
-            this.hand.push(cardToAdd);
-            break;
-          case 'battlefield':
-            this.battlefield.push(cardToAdd);
-            break;
-          case 'graveyard':
-            this.graveyard.push(cardToAdd);
-            break;
-          case 'exile':
-            this.exileZone.push(cardToAdd);
-            break;
-          case 'command':
-            this.commandZone.push(cardToAdd);
-            break;
-          case 'library':
-            // Add to a random position in library
-            const randomPos = Math.floor(Math.random() * this.library.length);
-            this.library.splice(randomPos, 0, cardToAdd);
-            break;
-        }
-        
-        this.draggedCard = null;
-      },
-      
-      // Context menu methods
-      openCardMenu(event, card, zone, index) {
-        this.contextCard = card;
-        this.contextZone = zone;
-        this.contextIndex = index;
-        this.contextMenuPosition = {
-          x: event.clientX,
-          y: event.clientY
-        };
-        this.showContextMenu = true;
-        
-        // Close menu when clicking elsewhere
-        const closeMenu = () => {
-          this.showContextMenu = false;
-          document.removeEventListener('click', closeMenu);
-        };
-        document.addEventListener('click', closeMenu);
-      },
-      
-      flipCard() {
-        if (!this.contextCard) return;
-        
-        if (this.contextZone === 'battlefield') {
-          const card = this.battlefield[this.contextIndex];
-          card.flipped = !card.flipped;
-        }
-        this.showContextMenu = false;
-      },
-      
-      tapCard() {
-        if (!this.contextCard || this.contextZone !== 'battlefield') return;
-        
-        const card = this.battlefield[this.contextIndex];
-        card.tapped = !card.tapped;
-        this.showContextMenu = false;
-      },
-      
-      addCounter() {
-        if (!this.contextCard) return;
-        
-        const card = this.getCardFromZone();
-        if (card) {
-          if (!card.counters) card.counters = 0;
-          card.counters++;
-        }
-        this.showContextMenu = false;
-      },
-      
-      removeCounter() {
-        if (!this.contextCard) return;
-        
-        const card = this.getCardFromZone();
-        if (card && card.counters && card.counters > 0) {
-          card.counters--;
-        }
-        this.showContextMenu = false;
-      },
-      
-      setPowerToughness() {
-        if (!this.contextCard) return;
-        
-        const card = this.getCardFromZone();
-        if (card) {
-          this.newPower = card.power !== undefined ? card.power : 0;
-          this.newToughness = card.toughness !== undefined ? card.toughness : 0;
-          this.showPTModal = true;
-        }
-        this.showContextMenu = false;
-      },
-      
-      savePT() {
-        const card = this.getCardFromZone();
-        if (card) {
-          card.power = this.newPower;
-          card.toughness = this.newToughness;
-        }
-        this.showPTModal = false;
-      },
-      
-      cancelPT() {
-        this.showPTModal = false;
-      },
-      
-      createTokenCopy() {
-        if (!this.contextCard) return;
-        
-        const card = this.getCardFromZone();
-        if (card) {
-          this.tokenName = card.name + " Token";
-          this.tokenImageUrl = this.getCardImage(card);
-          this.showTokenModal = true;
-        }
-        this.showContextMenu = false;
-      },
-      
-      getCardFromZone() {
-        switch (this.contextZone) {
-          case 'hand': return this.hand[this.contextIndex];
-          case 'battlefield': return this.battlefield[this.contextIndex];
-          case 'graveyard': return this.graveyard[this.contextIndex];
-          case 'exile': return this.exileZone[this.contextIndex];
-          case 'command': return this.commandZone[this.contextIndex];
-          default: return null;
-        }
-      },
-      
-      // Token methods
-      addToken() {
-        this.tokenName = '';
-        this.tokenQuantity = 1;
-        this.tokenImageUrl = '';
-        this.showTokenModal = true;
-      },
-      
-      createToken() {
-        for (let i = 0; i < this.tokenQuantity; i++) {
-          this.battlefield.push({
-            name: this.tokenName || 'Token',
-            isToken: true,
-            image_uris: {
-              normal: this.tokenImageUrl || require('@/assets/mtg-token-default.jpg')
-            },
-            tapped: false,
-            flipped: false,
-            counters: 0
-          });
-        }
-        this.showTokenModal = false;
-      },
-      
-      cancelTokenCreation() {
-        this.showTokenModal = false;
-      },
-      
-      // Library search methods
-      searchLibrary() {
-        this.librarySearchQuery = '';
-        this.librarySearchResults = [...this.library];
-        this.showLibrarySearch = true;
-      },
-      
-      searchLibraryCards() {
-        if (!this.librarySearchQuery) {
-          this.librarySearchResults = [...this.library];
-          return;
-        }
-        
-        const query = this.librarySearchQuery.toLowerCase();
-        this.librarySearchResults = this.library.filter(card => 
-          card.name.toLowerCase().includes(query)
-        );
-      },
-      
-      moveCardToHand(card) {
-        const index = this.library.findIndex(c => c.id === card.id);
-        if (index !== -1) {
-          this.library.splice(index, 1);
+      }
+    },
+    
+    drawCard() {
+      if (this.library.length > 0) {
+        const card = this.library.pop();
+        if (this.phase === 'initialDraw') {
+          this.initialHand.push(card);
+        } else {
           this.hand.push(card);
         }
-        this.closeLibrarySearch();
-      },
-      
-      closeLibrarySearch() {
-        this.showLibrarySearch = false;
-      },
-      
-      // Helper methods
-      getCardImage(card) {
-        if (card.flipped) {
-          return card.card_faces ? card.card_faces[1].image_uris.normal : require('@/assets/mtg-card-back.jpg');
-        }
-        return card.image_uris?.normal || (card.card_faces ? card.card_faces[0].image_uris.normal : require('@/assets/mtg-card-back.jpg'));
       }
+    },
+    
+    // Drag and Drop methods
+    dragStart(event, card, zone, index) {
+      event.dataTransfer.setData('text/plain', ''); // Required for Firefox
+      this.draggedCard = card;
+      this.draggedFromZone = zone;
+      this.draggedFromIndex = index;
+    },
+    
+    dropCard(event, targetZone) {
+      event.preventDefault();
+      
+      if (!this.draggedCard) return;
+      
+      // Remove from original zone
+      switch (this.draggedFromZone) {
+        case 'hand':
+          this.hand.splice(this.draggedFromIndex, 1);
+          break;
+        case 'battlefield':
+          this.battlefield.splice(this.draggedFromIndex, 1);
+          break;
+        case 'graveyard':
+          this.graveyard.splice(this.draggedFromIndex, 1);
+          break;
+        case 'exile':
+          this.exileZone.splice(this.draggedFromIndex, 1);
+          break;
+        case 'command':
+          this.commandZone.splice(this.draggedFromIndex, 1);
+          break;
+        case 'library':
+          this.library.splice(this.draggedFromIndex, 1);
+          break;
+      }
+      
+      // Add to target zone
+      const cardToAdd = { ...this.draggedCard };
+
+      // Handle tokens (they can't go to certain zones)
+      if (cardToAdd.isToken) {
+        if (targetZone === 'hand' || targetZone === 'library') {
+          // Tokens cease to exist when moved to hand or library
+          this.draggedCard = null;
+          return;
+        }
+      }
+
+      let randomPos; // Declare the variable outside the switch statement
+
+      switch (targetZone) {
+        case 'hand':
+          this.hand.push(cardToAdd);
+          break;
+        case 'battlefield':
+          this.battlefield.push(cardToAdd);
+          break;
+        case 'graveyard':
+          this.graveyard.push(cardToAdd);
+          break;
+        case 'exile':
+          this.exileZone.push(cardToAdd);
+          break;
+        case 'command':
+          this.commandZone.push(cardToAdd);
+          break;
+        case 'library':
+          // Add to a random position in library
+          randomPos = Math.floor(Math.random() * this.library.length);
+          this.library.splice(randomPos, 0, cardToAdd);
+          break;
+      }
+      
+      this.draggedCard = null;
+    },
+    
+    // Context menu methods
+    openCardMenu(event, card, zone, index) {
+      this.contextCard = card;
+      this.contextZone = zone;
+      this.contextIndex = index;
+      this.contextMenuPosition = {
+        x: event.clientX,
+        y: event.clientY
+      };
+      this.showContextMenu = true;
+      
+      // Close menu when clicking elsewhere
+      const closeMenu = () => {
+        this.showContextMenu = false;
+        document.removeEventListener('click', closeMenu);
+      };
+      document.addEventListener('click', closeMenu);
+    },
+    
+    flipCard() {
+      if (!this.contextCard) return;
+      
+      if (this.contextZone === 'battlefield') {
+        const card = this.battlefield[this.contextIndex];
+        card.flipped = !card.flipped;
+      }
+      this.showContextMenu = false;
+    },
+    
+    tapCard() {
+      if (!this.contextCard || this.contextZone !== 'battlefield') return;
+      
+      const card = this.battlefield[this.contextIndex];
+      card.tapped = !card.tapped;
+      this.showContextMenu = false;
+    },
+    
+    addCounter() {
+      if (!this.contextCard) return;
+      
+      const card = this.getCardFromZone();
+      if (card) {
+        if (!card.counters) card.counters = 0;
+        card.counters++;
+      }
+      this.showContextMenu = false;
+    },
+    
+    removeCounter() {
+      if (!this.contextCard) return;
+      
+      const card = this.getCardFromZone();
+      if (card && card.counters && card.counters > 0) {
+        card.counters--;
+      }
+      this.showContextMenu = false;
+    },
+    
+    setPowerToughness() {
+      if (!this.contextCard) return;
+      
+      const card = this.getCardFromZone();
+      if (card) {
+        this.newPower = card.power !== undefined ? card.power : 0;
+        this.newToughness = card.toughness !== undefined ? card.toughness : 0;
+        this.showPTModal = true;
+      }
+      this.showContextMenu = false;
+    },
+    
+    savePT() {
+      const card = this.getCardFromZone();
+      if (card) {
+        card.power = this.newPower;
+        card.toughness = this.newToughness;
+      }
+      this.showPTModal = false;
+    },
+    
+    cancelPT() {
+      this.showPTModal = false;
+    },
+    
+    createTokenCopy() {
+      if (!this.contextCard) return;
+      
+      const card = this.getCardFromZone();
+      if (card) {
+        this.tokenName = card.name + " Token";
+        this.tokenImageUrl = this.getCardImage(card);
+        this.showTokenModal = true;
+      }
+      this.showContextMenu = false;
+    },
+    
+    getCardFromZone() {
+      switch (this.contextZone) {
+        case 'hand': return this.hand[this.contextIndex];
+        case 'battlefield': return this.battlefield[this.contextIndex];
+        case 'graveyard': return this.graveyard[this.contextIndex];
+        case 'exile': return this.exileZone[this.contextIndex];
+        case 'command': return this.commandZone[this.contextIndex];
+        default: return null;
+      }
+    },
+    
+    // Token methods
+    addToken() {
+      this.tokenName = '';
+      this.tokenQuantity = 1;
+      this.tokenImageUrl = '';
+      this.showTokenModal = true;
+    },
+    
+    createToken() {
+      for (let i = 0; i < this.tokenQuantity; i++) {
+        this.battlefield.push({
+          name: this.tokenName || 'Token',
+          isToken: true,
+          image_uris: {
+            normal: this.tokenImageUrl || require('@/assets/cards/mtg-token-default.jpg')
+          },
+          tapped: false,
+          flipped: false,
+          counters: 0
+        });
+      }
+      this.showTokenModal = false;
+    },
+    
+    cancelTokenCreation() {
+      this.showTokenModal = false;
+    },
+    
+    // Library search methods
+    searchLibrary() {
+      this.librarySearchQuery = '';
+      this.librarySearchResults = [...this.library];
+      this.showLibrarySearch = true;
+    },
+    
+    searchLibraryCards() {
+      if (!this.librarySearchQuery) {
+        this.librarySearchResults = [...this.library];
+        return;
+      }
+      
+      const query = this.librarySearchQuery.toLowerCase();
+      this.librarySearchResults = this.library.filter(card => 
+        card.name.toLowerCase().includes(query)
+      );
+    },
+    
+    moveCardToHand(card) {
+      const index = this.library.findIndex(c => c.id === card.id);
+      if (index !== -1) {
+        this.library.splice(index, 1);
+        this.hand.push(card);
+      }
+      this.closeLibrarySearch();
+    },
+    
+    closeLibrarySearch() {
+      this.showLibrarySearch = false;
+    },
+    
+    // Helper methods
+    getCardImage(card) {
+      if (card.flipped) {
+        return card.card_faces ? card.card_faces[1].image_uris.normal : require('@/assets/cards/mtg-card-back.jpg');
+      }
+      return card.image_uris?.normal || (card.card_faces ? card.card_faces[0].image_uris.normal : require('@/assets/cards/mtg-card-back.jpg'));
     }
-  }
-  </script>
+  },
+}
+</script>
   
   <style scoped>
   .playtest-popup {
@@ -974,4 +1005,17 @@
     height: auto;
     border-radius: 5px;
   }
+  .close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  z-index: 1001;
+}
   </style>
