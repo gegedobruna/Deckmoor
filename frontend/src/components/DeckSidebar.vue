@@ -142,7 +142,6 @@
       </div>
     </div>
     
-    <!-- Create Deck Modal -->
     <div v-if="showCreateDeckModal" class="modal-overlay" @click.self="showCreateDeckModal = false">
       <div class="modal-content">
         <h2 class="modal-title">Create New Deck</h2>
@@ -167,7 +166,6 @@
       </div>
     </div>
     
-    <!-- Commander Search Modal -->
     <div v-if="showCommanderSearch" class="modal-overlay" @click.self="showCommanderSearch = false">
       <div class="modal-content commander-search">
         <h2 class="modal-title">Select Commander</h2>
@@ -186,7 +184,6 @@
       </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
     <div v-if="showDeleteConfirmation" class="modal-overlay" @click.self="showDeleteConfirmation = false">
       <div class="modal-content">
         <h2 class="modal-title">Delete Deck</h2>
@@ -217,9 +214,10 @@
     @view-card="viewCardDetails"
   />
   <PlaytestPopup 
-  :decks="decks" 
   v-if="showPlaytestPopup" 
-  @close="showPlaytestPopup = false" 
+  ref="playtestPopup"
+  :decks="decks"
+  @close="showPlaytestPopup = false"
 />
   </div>
 </template>
@@ -264,7 +262,8 @@ export default {
       showStatsModal: false,
       isRenaming: false,
       tempDeckName: '',
-      showPlaytest: false,
+      showPlaytestPopup: false,
+      selectedDeckForPlaytest: null,
     };
   },
   computed: {
@@ -416,14 +415,28 @@ methods: {
       }
     },
 
-    async openPlaytest() {
+    async openPlaytest(deckId = null) {
   try {
-    // Ensure decks are loaded
+    console.log('Opening playtest with deck:', deckId);
+    
+    // First, destroy any existing popup instance to prevent DOM issues
+    this.showPlaytestPopup = false;
+    await this.$nextTick();
+    
+    // Ensure decks are loaded before proceeding
     await this.loadDecksFromStorage();
-    console.log('Decks before opening popup:', this.decks);
+    console.log('Decks loaded for playtest:', this.decks.length);
+    
+    // Set up the state before showing the popup
+    this.selectedDeckForPlaytest = deckId;
+    
+    // Show the popup
     this.showPlaytestPopup = true;
+    
   } catch (error) {
-    console.error('Error loading decks:', error);
+    console.error('Error opening playtest:', error);
+    // Ensure popup is closed on error
+    this.showPlaytestPopup = false;
   }
 },
 
@@ -609,7 +622,7 @@ methods: {
           ? { q: 'type:legendary type:creature', order: 'edhrec' } 
           : { q: `${this.commanderQuery} type:legendary type:creature`, order: 'name' };
         
-        const response = await axios.get('https://api.scryfall.com/cards/search', { params });
+        const response = await axios.get('[https://api.scryfall.com/cards/search](https://api.scryfall.com/cards/search)', { params });
         this.commanderResults = response.data.data.slice(0, 20);
       } catch (error) {
         console.error('Error searching commanders:', error);
@@ -745,6 +758,7 @@ methods: {
   },
   beforeUnmount() {
     clearInterval(this.connectionInterval);
+    
   }
 };
 </script>
