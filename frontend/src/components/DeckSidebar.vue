@@ -6,26 +6,32 @@
       <span v-if="lastSyncTime" class="sync-time">({{ formatTime(lastSyncTime) }})</span>
     </div>
     <div v-if="!activeDeck" class="deck-list">
-      <h2 class="sidebar-title">Your Decks</h2>
-      <button class="playtest-btn" @click="openPlaytest()">
-  ▶️ Playtest
-</button>
-      <div v-for="deck in decks" :key="deck.id" class="deck-item" @click="loadDeck(deck)">
-        <span class="deck-name">{{ deck.name }}</span>
-        <span class="deck-colors" v-html="formatColors(deck.colors)"></span>
-        <span v-if="getDeckCardCount(deck) > 100" class="deck-warning">!</span>
-          <button class="delete-deck-btn" @click.stop="promptDeleteDeck(deck)">
-            🗑️
-          </button>
+      <div class="sidebar-header">
+        <h2 class="sidebar-title">Your Decks</h2>
+        <button class="playtest-btn" @click="openPlaytest()">
+          ▶️ Playtest
+        </button>
       </div>
-
-      <button class="create-deck-btn" @click="showCreateDeckModal = true">
-        <span class="btn-icon">+</span> Create a Deck
-      </button>
-      <button class="import-deck-btn" @click="showImportModal = true">
-        <span class="btn-icon">📥</span> Import Deck
+      <div class="deck-items-container">
+    <div v-for="deck in decks" :key="deck.id" class="deck-item" @click="loadDeck(deck)">
+      <span class="deck-name">{{ deck.name }}</span>
+      <span class="deck-colors" v-html="formatColors(deck.colors)"></span>
+      <span v-if="getDeckCardCount(deck) > 100" class="deck-warning">!</span>
+      <button class="delete-deck-btn" @click.stop="promptDeleteDeck(deck)">
+        🗑️
       </button>
     </div>
+  </div>
+
+  <div class="deck-buttons-container">
+    <button class="create-deck-btn" @click="showCreateDeckModal = true">
+      <span class="btn-icon">+</span> Create a Deck
+    </button>
+    <button class="import-deck-btn" @click="showImportModal = true">
+      <span class="btn-icon">📥</span> Import Deck
+    </button>
+  </div>
+</div>
     
     
     <div v-else class="active-deck">
@@ -828,8 +834,6 @@ methods: {
 
 .sidebar-title {
   margin-top: 0;
-  padding-bottom: 14px;
-  border-bottom: 2px solid #4299e1;
   font-size: 1.5rem;
 }
 
@@ -845,27 +849,92 @@ methods: {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
+  border-bottom: 1px solid #4299e1;
+  padding-bottom: 13px;
 }
 
 .playtest-btn {
-  background-color: #4CAF50;
-  color: white;
-  border: none;
+  background-color: #f7fafc;
+  color: #253527;;
+  border: 1px solid #e2e8f0;
   padding: 5px 10px;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
   display: flex;
   align-items: center;
   gap: 5px;
+  transition: all 0.2s ease;
 }
 
 .playtest-btn:hover {
-  background-color: #45a049;
+  background-color: #ebffee;
+  border-color: #bef8d7;
+  color: #4e7754;
+  transform: scale(1.05);
 }
+
+.filter-button {
+  padding: 10px 15px;
+  margin-top: 10px;
+  background-color: #f7fafc;
+  color: #4a5568;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-button:hover {
+  background-color: #ebf8ff;
+  border-color: #bee3f8;
+  color: #3182ce;
+  transform: scale(1.05);
+}
+
 
 .deck-list h2 {
   margin-top: 0;
+}
+
+.deck-items-container {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 40px; /* Increase padding for gradient */
+  margin-bottom: -40px; /* Adjust negative margin to match */
+  position: relative;
+}
+.deck-items-container::after {
+  content: '';
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,0.8) 50%, rgba(255,255,255,0) 100%);
+  pointer-events: none;
+  z-index: 1; /* Ensure gradient stays above deck items */
+}
+
+.deck-buttons-container {
+  position: sticky;
+  bottom: 0;
+  background: white;
+  padding-bottom: 10px;
+  border-top: 1px solid #e2e8f0;
+  z-index: 2; /* Higher than gradient */
+}
+
+.create-deck-btn, .import-deck-btn {
+  margin-top: 10px;
+  margin-bottom: 0;
+}
+
+.deck-list {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 80px);
+  position: relative;
 }
 
 .deck-item {
@@ -878,6 +947,8 @@ methods: {
   border: 1px solid #e2e8f0;
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
+  z-index: 0;
 }
 
 .deck-name {
@@ -909,7 +980,7 @@ methods: {
   padding: 4px 8px;
   margin-left: 8px;
   transition: all 0.2s ease;
-  z-index: 2;
+  z-index: 1;
 }
 
 .delete-deck-btn:hover {
