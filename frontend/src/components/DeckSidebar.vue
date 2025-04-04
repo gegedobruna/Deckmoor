@@ -848,7 +848,6 @@ methods: {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
   border-bottom: 1px solid #4299e1;
   padding-bottom: 13px;
 }
@@ -874,24 +873,6 @@ methods: {
   transform: scale(1.05);
 }
 
-.filter-button {
-  padding: 10px 15px;
-  margin-top: 10px;
-  background-color: #f7fafc;
-  color: #4a5568;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.filter-button:hover {
-  background-color: #ebf8ff;
-  border-color: #bee3f8;
-  color: #3182ce;
-  transform: scale(1.05);
-}
-
 
 .deck-list h2 {
   margin-top: 0;
@@ -902,6 +883,7 @@ methods: {
   overflow-y: auto;
   padding-bottom: 40px; /* Increase padding for gradient */
   margin-bottom: -40px; /* Adjust negative margin to match */
+  padding-top: 10px;
   position: relative;
 }
 .deck-items-container::after {
