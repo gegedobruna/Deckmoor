@@ -829,7 +829,7 @@ async searchCommanderCards() {
   top: 0;
   right: 0;
   height: 100vh;
-  background-color: white;
+  background-color: #f8fcf8;
   border-left: 1px solid #e2e8f0;
   overflow-y: auto;
   padding: 16px;
@@ -917,7 +917,7 @@ async searchCommanderCards() {
   z-index: 1; 
   pointer-events: none; 
   overflow: hidden; 
-  background-color: transparent; 
+  background-color: #f8fcf8; 
 }
 
 .gradient-blur::after {

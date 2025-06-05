@@ -85,7 +85,7 @@ export default {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  background-color: white;
+  background-color: #f8fcf8;
   margin-right: 10px;
   isolation: isolate;
   position: relative;

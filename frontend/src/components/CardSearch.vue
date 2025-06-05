@@ -1,6 +1,6 @@
 <template>
   <div class="card-search-container">
-    <h1>MTG Card Search</h1>
+  <img :src="require('@/assets/logo/logo1.png')" alt="Deckmoor" class="deckmoor-logo" />
     
     <div class="main-content">
       <!-- Search Controls -->
@@ -104,6 +104,8 @@ import CardGrid from "./CardGrid.vue";
 import CardDetailsPopup from "./CardDetailsPopup.vue";
 import FilterPopup from "./FilterPopup.vue"; // Changed from FilterPanel to FilterPopup
 import DeckSidebar from "./DeckSidebar.vue";
+import DeckmoorLogo from "../assets/logo/logo1.png";
+
 
 export default {
   components: { 
@@ -134,7 +136,8 @@ export default {
         // subtype: "",
         manaCost: { min: 0, max: 20 },
         power: { operator: "=", value: null },
-        toughness: { operator: "=", value: null }
+        toughness: { operator: "=", value: null },
+        DeckmoorLogo
       },
     };
   },
@@ -313,12 +316,15 @@ export default {
   padding-bottom: 20px; /* Add some bottom padding */
 }
 
-/* Typography */
-h1 {
-  text-align: center;
-  margin-bottom: 20px;
-  color: #333;
+.deckmoor-logo {
+  max-height: 300px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto; /* center it horizontally */
 }
+
+
+/* Typography */
 
 .page-number {
   font-weight: bold;
@@ -375,7 +381,7 @@ h1 {
 
 .search-button {
   padding: 12px 20px;
-  background-color: #4299e1;
+  background-color: #316242;
   color: white;
   border: none;
   border-radius: 8px;
@@ -384,25 +390,25 @@ h1 {
 }
 
 .search-button:hover {
-  background-color: #3182ce;
+  background-color: #48835d;
   transform: scale(1.05);
 }
 
 .filter-button {
   padding: 10px 15px;
   margin-top: 10px;
-  background-color: #f7fafc;
-  color: #4a5568;
-  border: 1px solid #e2e8f0;
+  background-color: #fcfcf7;
+  color: #68664a;
+  border: 1px solid #e6e1c0;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .filter-button:hover {
-  background-color: #ebf8ff;
-  border-color: #bee3f8;
-  color: #3182ce;
+  background-color: #fdffeb;
+  border-color: #ecf8be;
+  color: #9e911e;
   transform: scale(1.05);
 }
 
@@ -438,6 +444,7 @@ h1 {
   background-color: #cccccc;
   cursor: not-allowed;
 }
+
 
 /* Responsive Adjustments */
 @media (max-width: 1024px) {
