@@ -28,6 +28,17 @@ Graduation: 2025
 
 ---
 
+## ⚠️ Public Database Notice
+
+This project uses an **open-access Firebase Firestore database** with **no authentication**.
+
+All decks are:
+- Publicly visible
+- Shared between all users
+- Not protected from edits or deletion
+
+This is intended as a **demo/test project** and not for storing permanent or private content. Please do not submit sensitive data.
+
 ## 🛠️ Stack & Tools
 
 | Tool | Purpose |
