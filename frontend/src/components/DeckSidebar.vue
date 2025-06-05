@@ -5,6 +5,7 @@
       {{ statusMessage }}
       <span v-if="lastSyncTime" class="sync-time">({{ formatTime(lastSyncTime) }})</span>
     </div>
+
     <div v-if="!activeDeck" class="deck-list">
       <div class="sidebar-header">
         <h2 class="sidebar-title">Your Decks</h2>
@@ -12,26 +13,35 @@
           ▶️ Playtest
         </button>
       </div>
-      <div class="deck-items-container">
-    <div v-for="deck in decks" :key="deck.id" class="deck-item" @click="loadDeck(deck)">
-      <span class="deck-name">{{ deck.name }}</span>
-      <span class="deck-colors" v-html="formatColors(deck.colors)"></span>
-      <span v-if="getDeckCardCount(deck) > 100" class="deck-warning">!</span>
-      <button class="delete-deck-btn" @click.stop="promptDeleteDeck(deck)">
-        🗑️
-      </button>
-    </div>
-  </div>
 
-  <div class="deck-buttons-container">
-    <button class="create-deck-btn" @click="showCreateDeckModal = true">
-      <span class="btn-icon">+</span> Create a Deck
-    </button>
-    <button class="import-deck-btn" @click="showImportModal = true">
-      <span class="btn-icon">📥</span> Import Deck
-    </button>
-  </div>
-</div>
+      <div class="deck-items-container">
+        <div v-for="deck in decks" :key="deck.id" class="deck-item" @click="loadDeck(deck)">
+          <span class="deck-name">{{ deck.name }}</span>
+          <span class="deck-colors" v-html="formatColors(deck.colors)"></span>
+          <span v-if="getDeckCardCount(deck) > 100" class="deck-warning">!</span>
+          <button class="delete-deck-btn" @click.stop="promptDeleteDeck(deck)">
+            🗑️
+          </button>
+        </div>
+      </div>
+
+      <div class="gradient-blur">
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+      </div>
+      <div class="deck-buttons-container">
+        <button class="create-deck-btn" @click="showCreateDeckModal = true">
+          <span class="btn-icon">+</span> Create a Deck
+        </button>
+        <button class="import-deck-btn" @click="showImportModal = true">
+          <span class="btn-icon">📥</span> Import Deck
+        </button>
+      </div>
+    </div>
     
     
     <div v-else class="active-deck">
@@ -156,7 +166,7 @@
           <input id="deckName" v-model="newDeckName" placeholder="Enter deck name">
         </div>
         <div class="form-group">
-          <button class="search-commander-btn" @click="searchCommander">Search for Commander</button>
+        <button @click="searchCommanderCards">Search for Commander</button>
         </div>
         <div v-if="selectedCommander" class="selected-commander">
           <h3 class="modal-subtitle">Selected Commander:</h3>
@@ -229,7 +239,6 @@
 </template>
 
 <script>
-import axios from 'axios';
 import { saveDeck, loadDecks, deleteDeck } from '../services/deckService';
 import ImportPopup from './ImportPopup.vue'; 
 import ExportPopup from './ExportPopup.vue';
@@ -617,24 +626,28 @@ methods: {
       }
     },
 
-    searchCommander() {
-      this.showCommanderSearch = true;
-      this.searchCommanderCards();
-    },
 
-    async searchCommanderCards() {
-      try {
-        const params = this.commanderQuery.length < 2 
-          ? { q: 'type:legendary type:creature', order: 'edhrec' } 
-          : { q: `${this.commanderQuery} type:legendary type:creature`, order: 'name' };
-        
-        const response = await axios.get('[https://api.scryfall.com/cards/search](https://api.scryfall.com/cards/search)', { params });
-        this.commanderResults = response.data.data.slice(0, 20);
-      } catch (error) {
-        console.error('Error searching commanders:', error);
-        this.commanderResults = [];
-      }
-    },
+async searchCommanderCards() {
+  this.showCommanderSearch = true;
+
+  if (this.commanderQuery.length < 2) {
+    this.commanderResults = [];
+    return;
+  }
+
+  const query = encodeURIComponent(`${this.commanderQuery} type:legendary type:creature`);
+
+  try {
+    const response = await fetch(`https://api.scryfall.com/cards/search?q=${query}`);
+    const data = await response.json();
+    this.commanderResults = data.data || [];
+  } catch (err) {
+    console.error("Commander search failed:", err);
+    this.commanderResults = [];
+  }
+}
+,
+
 
     selectCommander(card) {
       this.selectedCommander = card;
@@ -878,34 +891,64 @@ methods: {
   margin-top: 0;
 }
 
-.deck-items-container {
+.deck-items-container { 
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 40px; /* Increase padding for gradient */
-  margin-bottom: -40px; /* Adjust negative margin to match */
-  padding-top: 10px;
+  margin-bottom: 0; 
+  padding-top: 10px; 
   position: relative;
-}
-.deck-items-container::after {
-  content: '';
-  position: sticky;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 40px;
-  background: linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,0.8) 50%, rgba(255,255,255,0) 100%);
-  pointer-events: none;
-  z-index: 1; /* Ensure gradient stays above deck items */
+  
+  padding-bottom: 150px; /* Match gradient-blur height */
 }
 
-.deck-buttons-container {
+.deck-buttons-container { 
   position: sticky;
   bottom: 0;
-  background: white;
-  padding-bottom: 10px;
+  background: white; 
+  padding: 10px 0;
   border-top: 1px solid #e2e8f0;
-  z-index: 2; /* Higher than gradient */
+  z-index: 10;
 }
+
+.gradient-blur {
+  position: absolute;
+  inset: auto 0 0px 0;
+  height: 150px; 
+  z-index: 1; 
+  pointer-events: none; 
+  overflow: hidden; 
+  background-color: transparent; 
+}
+
+.gradient-blur::after {
+  content: "";
+  position: absolute;
+  inset: 0; /* Cover the entire .gradient-blur area */
+  background-color: transparent; /* Ensure pseudo-element is transparent */
+
+  /* Apply a single, noticeable blur */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px); /* Add vendor prefix */
+
+  /* Mask the blur effect with a gradient */
+  mask: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0%,    /* Start transparent at the top */
+    rgba(0, 0, 0, 0.1) 20%, /* Gently start fading in the mask */
+    rgba(0, 0, 0, 1) 60%,   /* Become fully opaque (blur visible) */
+    rgba(0, 0, 0, 1) 100%   /* Stay opaque to the bottom */
+  );
+  -webkit-mask: linear-gradient( /* Add vendor prefix */
+    to bottom,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.1) 20%,
+    rgba(0, 0, 0, 1) 60%,
+    rgba(0, 0, 0, 1) 100%
+  );
+
+  /* z-index is not strictly needed here as it's inside the parent */
+}
+
 
 .create-deck-btn, .import-deck-btn {
   margin-top: 10px;
