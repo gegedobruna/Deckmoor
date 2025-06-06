@@ -155,7 +155,7 @@ export default {
     
     async fetchAutocomplete(query) {
   try {
-    const response = await axios.get(`https://deckmoor-backend.onrender.com/search?query=${query}&page=1`);
+    const response = await axios.get(`https://deckmoor.onrender.com/search?query=${query}&page=1`);
     this.results = response.data.cards?.slice(0, 10) || [];
   } catch (error) {
     console.error("Error fetching autocomplete results:", error);
@@ -220,7 +220,7 @@ export default {
       }
     }
     
-    const response = await axios.get("https://deckmoor-backend.onrender.com/search", { params });
+    const response = await axios.get("https://deckmoor.onrender.com/search", { params });
     this.cards = response.data.cards || [];
     this.hasMore = response.data.has_more || false;
     this.page = newPage;
@@ -266,7 +266,7 @@ export default {
     
     async fetchSets() {
   try {
-    const response = await axios.get("https://deckmoor-backend.onrender.com/sets");
+    const response = await axios.get("https://deckmoor.onrender.com/sets");
     this.allSets = response.data.sets || [];
   } catch (error) {
     console.error("Error fetching sets:", error);
