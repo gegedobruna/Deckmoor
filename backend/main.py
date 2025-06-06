@@ -6,7 +6,9 @@ from typing import Optional, List
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080"],
+    allow_origins=[
+    "http://localhost:8080",
+    "https://gegedobruna.github.io"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
