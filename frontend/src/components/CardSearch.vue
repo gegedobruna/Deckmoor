@@ -154,14 +154,15 @@ export default {
     }, 300),
     
     async fetchAutocomplete(query) {
-      try {
-        const response = await axios.get(`http://127.0.0.1:8000/search?query=${query}&page=1`);
-        this.results = response.data.cards?.slice(0, 10) || [];
-      } catch (error) {
-        console.error("Error fetching autocomplete results:", error);
-        this.results = [];
-      }
-    },
+  try {
+    const response = await axios.get(`https://deckmoor-backend.onrender.com/search?query=${query}&page=1`);
+    this.results = response.data.cards?.slice(0, 10) || [];
+  } catch (error) {
+    console.error("Error fetching autocomplete results:", error);
+    this.results = [];
+  }
+},
+
     
     async submitSearch() {
       this.hasSearched = true;
@@ -219,7 +220,7 @@ export default {
       }
     }
     
-    const response = await axios.get("http://127.0.0.1:8000/search", { params });
+    const response = await axios.get("https://deckmoor-backend.onrender.com/search", { params });
     this.cards = response.data.cards || [];
     this.hasMore = response.data.has_more || false;
     this.page = newPage;
@@ -264,14 +265,14 @@ export default {
     },
     
     async fetchSets() {
-      try {
-        const response = await axios.get("http://127.0.0.1:8000/sets");
-        this.allSets = response.data.sets || [];
-      } catch (error) {
-        console.error("Error fetching sets:", error);
-        this.allSets = [];
-      }
-    },
+  try {
+    const response = await axios.get("https://deckmoor-backend.onrender.com/sets");
+    this.allSets = response.data.sets || [];
+  } catch (error) {
+    console.error("Error fetching sets:", error);
+    this.allSets = [];
+  }
+},
     
     addCardToDeck(card) {
       console.log("Adding card to deck:", card.name);
