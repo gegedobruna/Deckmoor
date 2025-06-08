@@ -82,8 +82,8 @@ src/assets/logo/logo1.png
 ## 📦 Install & Run Locally
 
 ```bash
-git clone https://github.com/gegedobruna/mtg-deckbuilder.git
-cd mtg-deckbuilder
+git clone https://github.com/gegedobruna/Deckmoor.git
+cd Deckmoor
 npm install
 npm run dev
 ```
